@@ -1,4 +1,5 @@
-"""Pydantic models for party requests, plans, and results."""
+"""Pydantic models. Plans are built from catalog *selections*; the system prices
+them, so the model can never invent a price."""
 from __future__ import annotations
 
 from datetime import date
@@ -25,28 +26,44 @@ class PartyRequest(BaseModel):
         return v
 
 
-class LineItem(BaseModel):
-    category: Literal["venue", "food", "supplies", "activities", "extras"]
-    description: str = Field(..., min_length=1, max_length=200)
+class Selection(BaseModel):
+    """A chosen catalog SKU and how many units. Prices come from the catalog."""
+    sku: str
     quantity: int = Field(default=1, ge=1)
-    unit_cost: float = Field(..., ge=0)
 
-    @computed_field
-    @property
-    def subtotal(self) -> float:
-        return round(self.quantity * self.unit_cost, 2)
+
+class PlanDraft(BaseModel):
+    """What the planner (LLM or mock) returns: choices, not prices."""
+    theme: str
+    venue_sku: str
+    food: list[Selection] = Field(default_factory=list)
+    supplies: list[Selection] = Field(default_factory=list)
+    activities: list[Selection] = Field(default_factory=list)
+    schedule: list["ScheduleSlot"] = Field(default_factory=list)
+    notes: str = ""
+
+
+class LineItem(BaseModel):
+    sku: str
+    category: Literal["venue", "food", "supplies", "activities", "extras"]
+    description: str
+    quantity: int = Field(default=1, ge=1)
+    unit_price: float = Field(..., ge=0)   # set from catalog, never from the model
+    subtotal: float = Field(..., ge=0)     # set from catalog
 
 
 class ScheduleSlot(BaseModel):
-    start: str  # "HH:MM"
-    end: str    # "HH:MM"
+    start: str
+    end: str
     activity: str = Field(..., min_length=1, max_length=200)
 
 
 class MenuItem(BaseModel):
+    sku: str
     name: str
     servings: int = Field(..., ge=0)
-    dietary_tags: list[str] = Field(default_factory=list)
+    allergens: list[str] = Field(default_factory=list)   # from catalog, authoritative
+    vegetarian: bool = True
 
 
 class PartyPlan(BaseModel):
@@ -73,15 +90,19 @@ class Violation(BaseModel):
 
 class VerificationReport(BaseModel):
     passed: bool
-    score: float  # fraction of checks passed, 0..1
+    score: float
     checks_total: int
     checks_passed: int
     violations: list[Violation] = Field(default_factory=list)
 
 
 class PlanResult(BaseModel):
+    status: Literal["verified", "best_effort"]
     request: PartyRequest
     plan: PartyPlan
     verification: VerificationReport
     telemetry: dict
     backend: str
+
+
+PlanDraft.model_rebuild()

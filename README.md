@@ -25,8 +25,11 @@ A raw LLM call returns something *plausible*. iParty returns something *verified
 | Missing venue / supplies / activities | **Verifier** enforces completeness |
 | Dietary needs ignored | **Verifier** requires the menu to address them |
 | Model returns junk / times out | **Watchdog** retries malformed or slow generations |
-| Repeated failures waste money | **Circuit breaker** stops early (fail fast) |
+| Repeated failures waste money | **Circuit breaker** (process-wide) stops early (fail fast) |
 | One sample is unreliable | **Best-of-N** generates candidates, returns the first that *passes* |
+| **Prices are hallucinated** | The model **selects catalog SKUs**; the system prices them. Unreal prices are rejected. |
+| **Allergens are unsafe** | Checked against FDA big-9 allergen profiles, not string tags. A peanut dish fails a nut-allergy request. |
+| **No valid plan exists** | The API returns `422` with the binding constraints and the **minimum feasible budget** — it never ships an invalid plan. |
 
 The orchestration emits **telemetry** describing exactly which patterns fired,
 which the UI renders as a live *reliability ledger*.
@@ -96,7 +99,8 @@ state, elapsed time, and a human-readable pattern log).
 src/iparty/
   core/          config, exceptions, logging
   orchestration/ ttl_engine.py  — circuit breaker, watchdog, best-of-N orchestrator
-  planning/      models, verifier (the gate), prompts, planner
+  pricing/       catalog (grounded prices + allergen profiles) — swap for a live vendor API
+  planning/      models, grounding, verifier (the gate), feasibility, prompts, planner
   llm/           Anthropic + offline Mock backends
   api/           FastAPI app + routes
 web/             single-page UI with the reliability ledger
@@ -118,6 +122,12 @@ Key honest finding carried into this design: verifier-gated best-of-N captures
 most of the reliability gain, and the **circuit breaker makes it cost-efficient**
 — TTL is a cost-reliability Pareto choice, not a claim to beat every alternative
 on raw accuracy.
+
+## Honest validation
+
+See **[VALIDATION.md](VALIDATION.md)** for a precise statement of what the code
+guarantees (with tests) versus the business risks code cannot close. Read it
+before pitching.
 
 ## License
 

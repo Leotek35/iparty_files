@@ -5,35 +5,53 @@ from fastapi.testclient import TestClient
 
 from iparty.api.app import create_app
 from iparty.llm.client import MockClient
+from iparty.orchestration.ttl_engine import TTLOrchestrator
+from iparty.pricing.catalog import StaticCatalog
 from iparty.planning.models import PartyRequest
 from iparty.planning.planner import TTLPartyPlanner
+from iparty.core.exceptions import NoValidPlanError
+
+CAT = StaticCatalog()
 
 
 @pytest.mark.asyncio
-async def test_planner_returns_verified_plan():
-    planner = TTLPartyPlanner(MockClient(flaw_rate=0.45))
-    req = PartyRequest(
-        honoree_name="Mia", honoree_age=6, party_date=date.today() + timedelta(days=30),
-        guest_count=12, budget=600, theme="Space", dietary_restrictions="vegetarian",
-    )
+async def test_planner_returns_verified_or_raises():
+    planner = TTLPartyPlanner(MockClient(), CAT, TTLOrchestrator("t"))
+    req = PartyRequest(honoree_name="Mia", honoree_age=6,
+                       party_date=date.today() + timedelta(days=30),
+                       guest_count=12, budget=800, theme="Space",
+                       dietary_restrictions="gluten-free")
     result = await planner.plan(req)
-    # Best-of-N should find a passing plan most of the time; always returns telemetry.
-    assert result.telemetry["candidates_generated"] >= 1
-    assert "pattern_log" in result.telemetry
-    assert result.plan.total_cost <= req.budget or not result.verification.passed
+    assert result.status == "verified"
+    assert result.verification.passed
+    assert result.plan.total_cost <= req.budget
 
 
-def test_health_and_plan_endpoints():
+@pytest.mark.asyncio
+async def test_infeasible_budget_raises_with_minimum():
+    planner = TTLPartyPlanner(MockClient(), CAT, TTLOrchestrator("t"))
+    req = PartyRequest(honoree_name="Zoe", honoree_age=7,
+                       party_date=date.today() + timedelta(days=30),
+                       guest_count=50, budget=5, theme="Space")
+    with pytest.raises(NoValidPlanError) as ei:
+        await planner.plan(req)
+    assert ei.value.minimum_feasible_budget is not None
+    assert ei.value.minimum_feasible_budget > 5
+
+
+def test_endpoints():
     client = TestClient(create_app())
     assert client.get("/health").json()["status"] == "ok"
-    payload = {
-        "honoree_name": "Leo", "honoree_age": 8,
-        "party_date": (date.today() + timedelta(days=14)).isoformat(),
-        "guest_count": 15, "budget": 750, "theme": "Superheroes",
-        "dietary_restrictions": "", "location_type": "home",
-    }
-    r = client.post("/api/v1/plan", json=payload)
+    assert "circuit_breaker" in client.get("/api/v1/metrics").json()
+    ok = {"honoree_name": "Leo", "honoree_age": 8,
+          "party_date": (date.today() + timedelta(days=14)).isoformat(),
+          "guest_count": 15, "budget": 900, "theme": "Superheroes",
+          "dietary_restrictions": "", "location_type": "home"}
+    r = client.post("/api/v1/plan", json=ok)
     assert r.status_code == 200, r.text
-    body = r.json()
-    assert body["plan"]["theme"]
-    assert "telemetry" in body and "verification" in body
+    assert r.json()["status"] == "verified"
+    # Infeasible -> honest 422 with a minimum budget, NOT a shipped invalid plan.
+    bad = {**ok, "budget": 3, "guest_count": 60}
+    r2 = client.post("/api/v1/plan", json=bad)
+    assert r2.status_code == 422
+    assert r2.json()["detail"]["minimum_feasible_budget"] > 3

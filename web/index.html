@@ -247,6 +247,18 @@ function renderPlan(p,req){
   </div>`;
 }
 
+function renderInfeasible(detail, req){
+  $("ledger-status").textContent = "infeasible";
+  const min = detail.minimum_feasible_budget;
+  const codes = (detail.violations||[]).map(v=>`<div class="check-row">${cross}<div><b>${v.code}</b> — ${v.message}</div></div>`).join("");
+  $("verifier").innerHTML = `<div class="checks">
+    <h3>Constraint check <span class="verdict fail">${cross.replace('class="ic"','width="14" height="14"')} NO VALID PLAN</span></h3>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:4px 0 10px">
+      We won't hand you a plan that breaks your constraints. With these numbers it can't be done${min?` — a workable party for ${req.guest_count} guests starts around <b style="color:var(--ink)">$${min.toFixed(0)}</b>.`:"."}
+    </p>${codes}</div>`;
+  $("plan").innerHTML = "";
+}
+
 $("party-form").addEventListener("submit", async (e)=>{
   e.preventDefault();
   const btn=$("submit-btn"); btn.disabled=true; btn.textContent="Planning…";
@@ -261,7 +273,11 @@ $("party-form").addEventListener("submit", async (e)=>{
   try{
     const r = await fetch("/api/v1/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(req)});
     await stagesPromise;
-    if(!r.ok){ const err=await r.json(); throw new Error(err.detail||"planning failed"); }
+    if(r.status===422){ // honest infeasible response — no invalid plan is ever shown
+      const {detail} = await r.json();
+      renderInfeasible(detail, req); return;
+    }
+    if(!r.ok){ const err=await r.json(); throw new Error(typeof err.detail==="string"?err.detail:"planning failed"); }
     const data = await r.json();
     $("ledger-status").textContent = "complete";
     renderTelemetry(data.telemetry);

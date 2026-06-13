@@ -1,52 +1,58 @@
-"""TTLPartyPlanner — verifier-gated, TTL-orchestrated party planning."""
+"""TTLPartyPlanner — verifier-gated, catalog-grounded, honest about failure."""
 from __future__ import annotations
 
+from ..core.exceptions import NoValidPlanError
 from ..core.logging import get_logger
 from ..llm.client import LLMClient
 from ..orchestration.ttl_engine import TTLOrchestrator
-from .models import PartyPlan, PartyRequest, PlanResult
-from .prompts import SYSTEM_PROMPT, build_user_prompt
+from ..pricing.catalog import Catalog
+from .feasibility import minimum_feasible_budget
+from .grounding import ground_draft
+from .models import PartyRequest, PlanResult
 from .verifier import verify_plan
 
 logger = get_logger("planner")
 
 
 class TTLPartyPlanner:
-    """Generate a plan that is *guaranteed* (when possible) to pass verification.
+    """Returns a *verified* plan, or raises NoValidPlanError. It never silently
+    ships an invalid plan as if it were valid.
 
-    Pipeline per request:
-      produce(i) -> LLM candidate plan (watchdog-wrapped, breaker-routed)
-      verify     -> constraint verifier (objective gate)
-      orchestrator returns the first passing candidate, else the best-scoring one.
+    A shared orchestrator (with a process-wide circuit breaker) is injected so
+    cross-request protection actually works.
     """
 
-    def __init__(self, client: LLMClient) -> None:
+    def __init__(self, client: LLMClient, catalog: Catalog, orchestrator: TTLOrchestrator) -> None:
         self.client = client
-        self.orchestrator = TTLOrchestrator(name="party")
+        self.catalog = catalog
+        self.orchestrator = orchestrator
 
     async def plan(self, request: PartyRequest) -> PlanResult:
-        system = SYSTEM_PROMPT
-        user = build_user_prompt(request)
-
-        async def produce(i: int) -> PartyPlan:
-            # vary temperature slightly across candidates for diversity
+        async def produce(i: int):
             temperature = 0.4 + 0.15 * i
-            return await self.client.generate_plan(system, user, request, temperature=temperature)
+            draft = await self.client.generate_draft(request, self.catalog, temperature=temperature)
+            return ground_draft(draft, self.catalog, request.guest_count)
 
-        def verify(plan: PartyPlan):
-            report = verify_plan(plan, request)
+        def verify(plan):
+            report = verify_plan(plan, request, self.catalog)
             return report.passed, report.score, report
 
         candidate, telemetry = await self.orchestrator.run_verified(produce, verify)
-        report = candidate.detail  # VerificationReport from verify()
+        report = candidate.detail
 
         if not candidate.passed:
-            logger.warning(
-                f"No fully-valid plan for {request.honoree_name}; "
-                f"returning best-effort (score {candidate.score:.2f})."
+            # Honest failure: do NOT present an invalid plan as shippable.
+            min_budget = minimum_feasible_budget(request, self.catalog)
+            binding = [v for v in report.violations if v.severity == "error"]
+            raise NoValidPlanError(
+                message="No plan could satisfy all constraints.",
+                violations=[v.model_dump() for v in binding],
+                minimum_feasible_budget=min_budget,
+                telemetry=telemetry.as_dict(),
             )
 
         return PlanResult(
+            status="verified",
             request=request,
             plan=candidate.value,
             verification=report,

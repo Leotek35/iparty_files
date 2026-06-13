@@ -1,16 +1,14 @@
-"""Constraint verifier — the ground-truth gate for party plans.
+"""Constraint verifier — the ground-truth gate.
 
-This is the analogue of the symbolic plan-validator in the research notebooks.
-A party plan either satisfies the hard constraints (budget, completeness, guest
-scaling, dietary, schedule sanity) or it does not — decided here, deterministically,
-*not* by an LLM. This is what makes TTL orchestration meaningful: candidates are
-gated on objective correctness, so the system can guarantee a budget-valid,
-complete plan rather than merely a plausible-looking one.
+Now grounded in the catalog: it checks realizability (every SKU is real and
+priced at the catalog rate), real allergen safety (against catalog allergen
+profiles, not string tags), age-appropriateness, budget, scaling, and schedule.
 """
 from __future__ import annotations
 
-from .models import PartyPlan, PartyRequest, VerificationReport, Violation
 from ..core.config import settings
+from ..pricing.catalog import Catalog, parse_forbidden_allergens, requires_vegetarian
+from .models import PartyPlan, PartyRequest, VerificationReport, Violation
 
 
 def _parse_hhmm(s: str) -> int | None:
@@ -21,8 +19,7 @@ def _parse_hhmm(s: str) -> int | None:
         return None
 
 
-def verify_plan(plan: PartyPlan, request: PartyRequest) -> VerificationReport:
-    """Return a verification report. `passed` is True iff there are no errors."""
+def verify_plan(plan: PartyPlan, request: PartyRequest, catalog: Catalog) -> VerificationReport:
     violations: list[Violation] = []
     checks: list[bool] = []
 
@@ -31,60 +28,83 @@ def verify_plan(plan: PartyPlan, request: PartyRequest) -> VerificationReport:
         if not ok:
             violations.append(Violation(code=code, severity=severity, message=message))  # type: ignore[arg-type]
 
+    # 1. REALIZABILITY — every line item maps to a real SKU at the catalog price.
+    realizable = True
+    for li in plan.line_items:
+        item = catalog.get(li.sku)
+        if item is None:
+            realizable = False
+            check(False, "UNREALIZABLE_SKU", "error",
+                  f"'{li.description}' ({li.sku}) is not a real catalog item.")
+            continue
+        expected = item.price_for(li.quantity, request.guest_count)
+        if abs(expected - li.subtotal) > 0.01:
+            realizable = False
+            check(False, "PRICE_MISMATCH", "error",
+                  f"'{item.name}' priced ${li.subtotal:.2f}, catalog says ${expected:.2f}.")
+    check(realizable, "REALIZABLE", "error", "Plan contains items that cannot be bought as priced.")
+
+    # 2. Budget ceiling (hard)
     total = plan.total_cost
     cap = request.budget * (1 + settings.BUDGET_TOLERANCE)
-
-    # 1. Budget ceiling (hard)
     check(total <= cap, "BUDGET_EXCEEDED", "error",
           f"Plan costs ${total:,.2f}, over the ${request.budget:,.2f} budget.")
 
-    # 2. Budget floor (warn if suspiciously cheap — likely incomplete)
-    floor = request.budget * settings.BUDGET_FLOOR_FRACTION
-    check(total >= floor, "BUDGET_SUSPICIOUSLY_LOW", "warning",
-          f"Plan only uses ${total:,.2f} of ${request.budget:,.2f}; may be incomplete.")
+    # 3. Budget floor (warn if suspiciously cheap)
+    check(total >= request.budget * settings.BUDGET_FLOOR_FRACTION, "BUDGET_SUSPICIOUSLY_LOW",
+          "warning", f"Plan uses only ${total:,.2f} of ${request.budget:,.2f}; may be incomplete.")
 
-    # 3. Completeness — required categories present
+    # 4. Completeness
     cats = {li.category for li in plan.line_items}
     for required in ("venue", "food", "supplies", "activities"):
         check(required in cats, f"MISSING_{required.upper()}", "error",
-              f"Plan is missing a '{required}' line item.")
+              f"Plan is missing a '{required}' item.")
 
-    # 4. Schedule present and sane
+    # 5. Schedule sanity
     check(len(plan.schedule) >= 2, "SCHEDULE_TOO_SHORT", "error",
-          "Schedule needs at least two time slots.")
+          "Schedule needs at least two slots.")
     times = [(_parse_hhmm(s.start), _parse_hhmm(s.end)) for s in plan.schedule]
-    monotonic = all(
-        a is not None and b is not None and a < b for a, b in times
-    ) and all(
-        times[i][1] is not None and times[i + 1][0] is not None
-        and times[i][1] <= times[i + 1][0]
+    monotonic = all(a is not None and b is not None and a < b for a, b in times) and all(
+        times[i][1] is not None and times[i + 1][0] is not None and times[i][1] <= times[i + 1][0]
         for i in range(len(times) - 1)
     )
     check(monotonic or len(plan.schedule) < 2, "SCHEDULE_NOT_MONOTONIC", "error",
           "Schedule slots overlap or run backwards.")
-    if times and all(t[0] is not None and t[1] is not None for t in times):
-        duration = times[-1][1] - times[0][0]
-        check(60 <= duration <= 480, "SCHEDULE_DURATION", "warning",
-              f"Party runs {duration} min; typical range is 1–8 hours.")
 
-    # 5. Guest scaling — food servings cover guests
+    # 6. Guest scaling — safe servings cover guests
     total_servings = sum(m.servings for m in plan.menu)
     check(total_servings >= request.guest_count, "FOOD_UNDERSCALED", "error",
           f"Menu serves {total_servings} but {request.guest_count} guests are coming.")
 
-    # 6. Supplies scale with guests (plates/cups heuristic)
-    check(len(plan.supplies) >= 1, "NO_SUPPLIES", "error", "No supplies listed.")
+    # 7. ALLERGEN SAFETY — real check against catalog allergen profiles.
+    forbidden = parse_forbidden_allergens(request.dietary_restrictions)
+    if forbidden:
+        unsafe = [m.name for m in plan.menu if forbidden & set(m.allergens)]
+        check(not unsafe, "ALLERGEN_VIOLATION", "error",
+              f"Unsafe for '{request.dietary_restrictions}': {', '.join(unsafe)} "
+              f"contain {', '.join(sorted(forbidden))}.")
+        safe_servings = sum(m.servings for m in plan.menu if not (forbidden & set(m.allergens)))
+        check(safe_servings >= request.guest_count, "INSUFFICIENT_SAFE_FOOD", "error",
+              f"Only {safe_servings} allergen-safe servings for {request.guest_count} guests.")
 
-    # 7. Dietary restrictions addressed
-    if request.dietary_restrictions.strip():
-        addressed = any(m.dietary_tags for m in plan.menu) or (
-            request.dietary_restrictions.lower() in plan.notes.lower()
-        )
-        check(addressed, "DIETARY_UNADDRESSED", "error",
-              f"Dietary restriction '{request.dietary_restrictions}' is not addressed in the menu.")
+    # 8. Vegetarian style, if requested
+    if requires_vegetarian(request.dietary_restrictions):
+        veg_servings = sum(m.servings for m in plan.menu if m.vegetarian)
+        check(veg_servings >= request.guest_count, "INSUFFICIENT_VEGETARIAN", "error",
+              f"Only {veg_servings} vegetarian servings for {request.guest_count} guests.")
 
-    # 8. Age-appropriateness (light heuristic: activities exist & non-empty)
-    check(len(plan.activities) >= 1, "NO_ACTIVITIES", "error", "No activities planned.")
+    # 9. Age-appropriateness — chosen activities fit the honoree's age.
+    bad_age = []
+    for li in plan.line_items:
+        if li.category != "activities":
+            continue
+        item = catalog.get(li.sku)
+        if item and not (item.min_age <= request.honoree_age <= item.max_age):
+            bad_age.append(item.name)
+    check(not bad_age, "AGE_INAPPROPRIATE", "error",
+          f"Activities not suitable for age {request.honoree_age}: {', '.join(bad_age)}.")
+    check(any(li.category == "activities" for li in plan.line_items), "NO_ACTIVITIES",
+          "error", "No activities planned.")
 
     checks_total = len(checks)
     checks_passed = sum(1 for c in checks if c)

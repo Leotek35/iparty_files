@@ -1,4 +1,4 @@
-"""Exception hierarchy (app-scoped subset of the production foundation)."""
+"""Exception hierarchy (app-scoped)."""
 from __future__ import annotations
 
 
@@ -19,7 +19,7 @@ class WatchdogTimeoutError(AgentExecutionError):
 
 
 class RetryExhaustedError(AgentExecutionError):
-    """Raised when all retries/candidates are exhausted without success."""
+    """Raised when all retries/candidates are exhausted without a candidate."""
 
 
 class PlanGenerationError(IPartyError):
@@ -27,8 +27,18 @@ class PlanGenerationError(IPartyError):
 
 
 class MalformedPlanError(PlanGenerationError):
-    """LLM returned output that could not be parsed into a PartyPlan."""
+    """LLM returned output that could not be parsed into a draft."""
 
 
 class NoValidPlanError(PlanGenerationError):
-    """No candidate plan passed verification within the attempt budget."""
+    """No candidate passed verification. Carries the binding constraints and the
+    minimum feasible budget so the caller can respond honestly."""
+
+    def __init__(self, message: str, violations: list | None = None,
+                 minimum_feasible_budget: float | None = None,
+                 telemetry: dict | None = None) -> None:
+        super().__init__(message)
+        self.message = message
+        self.violations = violations or []
+        self.minimum_feasible_budget = minimum_feasible_budget
+        self.telemetry = telemetry or {}

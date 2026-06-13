@@ -1,35 +1,47 @@
-"""Prompt construction for the planning LLM."""
+"""Prompt construction. The catalog is injected so the model SELECTS real,
+priced SKUs instead of inventing prices."""
 from __future__ import annotations
 
-from .models import PartyRequest
+from ..pricing.catalog import Catalog
 
 SYSTEM_PROMPT = """You are iParty's expert children's party planner.
-You produce complete, budget-accurate party plans as STRICT JSON.
+You build a plan by SELECTING items from the provided catalog by their SKU.
+You never invent prices — the system prices your selections from the catalog.
 
-Hard requirements you MUST satisfy:
-- The sum of every line_item (quantity * unit_cost) must be <= the stated budget.
-- Include line_items in all of these categories: venue, food, supplies, activities.
-- The menu's total servings must be >= the guest count.
-- Provide at least 2 schedule slots in "HH:MM" 24h format, in order, non-overlapping.
-- If dietary restrictions are given, tag compliant menu items and mention them in notes.
-- Provide at least one activity appropriate to the honoree's age.
+Hard requirements:
+- Choose exactly one venue SKU matching the location.
+- Choose food whose total servings >= guest count.
+- If dietary restrictions are given, choose only items whose allergens do not
+  conflict, and ensure safe servings >= guest count.
+- Choose at least one age-appropriate activity and one supplies item.
+- Provide >= 2 schedule slots in "HH:MM" 24h order, non-overlapping.
 
-Output ONLY a JSON object with this exact shape (no prose, no markdown fences):
+Return ONLY JSON (no prose, no fences):
 {
   "theme": str,
-  "venue": str,
-  "line_items": [{"category": "venue|food|supplies|activities|extras",
-                   "description": str, "quantity": int, "unit_cost": number}],
-  "menu": [{"name": str, "servings": int, "dietary_tags": [str]}],
+  "venue_sku": str,
+  "food": [{"sku": str, "quantity": int}],
+  "supplies": [{"sku": str, "quantity": int}],
+  "activities": [{"sku": str, "quantity": int}],
   "schedule": [{"start": "HH:MM", "end": "HH:MM", "activity": str}],
-  "activities": [str],
-  "supplies": [str],
   "notes": str
 }
 """
 
 
-def build_user_prompt(req: PartyRequest) -> str:
+def _catalog_table(catalog: Catalog) -> str:
+    rows = []
+    for item in catalog.all():
+        allergens = ",".join(sorted(item.allergens)) or "none"
+        rows.append(
+            f"{item.sku} | {item.category} | {item.name} | {item.unit} "
+            f"${item.unit_price} | serves={item.serves} | allergens={allergens} "
+            f"| age {item.min_age}-{item.max_age}"
+        )
+    return "\n".join(rows)
+
+
+def build_user_prompt(req, catalog: Catalog) -> str:
     diet = req.dietary_restrictions.strip() or "none"
     return (
         f"Plan a birthday party.\n"
@@ -37,8 +49,10 @@ def build_user_prompt(req: PartyRequest) -> str:
         f"- Date: {req.party_date.isoformat()}\n"
         f"- Guests: {req.guest_count}\n"
         f"- Budget (hard cap): ${req.budget:,.2f}\n"
-        f"- Theme preference: {req.theme or 'planner''s choice'}\n"
+        f"- Theme: {req.theme or 'your choice'}\n"
         f"- Location: {req.location_type}\n"
-        f"- Dietary restrictions: {diet}\n"
-        f"Return the JSON plan now."
+        f"- Dietary restrictions: {diet}\n\n"
+        f"CATALOG (sku | category | name | unit price | serves | allergens | age):\n"
+        f"{_catalog_table(catalog)}\n\n"
+        f"Return the JSON selection now."
     )
