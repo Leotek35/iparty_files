@@ -1,0 +1,15 @@
+# Render Blueprint — one-click deploy. https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: iparty
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: LLM_BACKEND
+        value: mock          # change to "anthropic" + set ANTHROPIC_API_KEY for live Claude
+      # - key: ANTHROPIC_API_KEY
+      #   sync: false        # set this in the Render dashboard, never in the repo
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-6
