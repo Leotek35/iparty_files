@@ -62,6 +62,7 @@ class CircuitBreaker:
         self.last_failure_time: float | None = None
         self.total_calls = 0
         self.total_failures = 0
+        self._probe_in_flight = False  # HALF_OPEN admits exactly one probe
 
     def _should_attempt_reset(self) -> bool:
         return (
@@ -77,6 +78,14 @@ class CircuitBreaker:
                 logger.info(f"[{self.name}] circuit HALF_OPEN (probing recovery)")
             else:
                 raise CircuitBreakerOpenError(f"circuit '{self.name}' is OPEN")
+        if self.state == CircuitState.HALF_OPEN:
+            # Admit exactly ONE in-flight probe; reject the rest fast so a
+            # recovering provider is not hammered by every queued request.
+            if self._probe_in_flight:
+                raise CircuitBreakerOpenError(
+                    f"circuit '{self.name}' is HALF_OPEN (probe in flight)"
+                )
+            self._probe_in_flight = True
         try:
             result = await func(*args, **kwargs)
         except Exception as exc:  # noqa: BLE001
@@ -87,6 +96,7 @@ class CircuitBreaker:
 
     def _on_success(self) -> None:
         if self.state == CircuitState.HALF_OPEN:
+            self._probe_in_flight = False
             self.success_count += 1
             if self.success_count >= self.success_threshold:
                 self._close()
@@ -97,6 +107,7 @@ class CircuitBreaker:
         self.total_failures += 1
         self.last_failure_time = time.monotonic()
         if self.state == CircuitState.HALF_OPEN:
+            self._probe_in_flight = False
             self._open()
             return
         self.failure_count += 1
@@ -236,15 +247,20 @@ class TTLOrchestrator:
         verify: Callable[[T], "tuple[bool, float, object]"],
         n: int | None = None,
         consecutive_fail_limit: int | None = None,
+        deadline_seconds: float | None = None,
     ) -> "tuple[Candidate[T], Telemetry]":
         n = n or settings.PLAN_CANDIDATES_N
         consecutive_fail_limit = consecutive_fail_limit or settings.CB_CONSECUTIVE_FAILS
+        deadline = deadline_seconds or settings.REQUEST_DEADLINE_SECONDS
         tel = Telemetry()
         start = time.monotonic()
         best: Candidate[T] | None = None
         consecutive = 0
 
         for i in range(n):
+            if time.monotonic() - start >= deadline:
+                tel.event(f"request deadline ({deadline:.0f}s) reached — stopping")
+                break
             try:
                 value = await self.breaker.call(self.watchdog.execute, produce, i)
             except CircuitBreakerOpenError:

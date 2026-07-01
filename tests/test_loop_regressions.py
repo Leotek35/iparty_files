@@ -1,5 +1,6 @@
 """Regression tests from agentic loop iterations. Each test encodes a defect the
 critic found, so it can never silently return."""
+import asyncio
 from datetime import date, timedelta
 
 import pytest
@@ -79,11 +80,11 @@ class FlakyThenGoodLLM:
         self._inner = MockClient(flaw_rate=0.0)
         self.calls = 0
 
-    async def generate_draft(self, request, catalog, temperature=0.5):
+    async def generate_draft(self, request, catalog, temperature=0.5, feedback=None):
         self.calls += 1
         if self.calls <= 2:
             raise RuntimeError("transient provider blip")
-        return await self._inner.generate_draft(request, catalog, temperature)
+        return await self._inner.generate_draft(request, catalog, temperature, feedback=feedback)
 
 
 @pytest.mark.asyncio
@@ -145,3 +146,87 @@ def test_big_party_end_to_end_supplies_scale():
         item = CAT.get(li["sku"])
         capacity += 200 if item.unit == "per_person" else item.serves * li["quantity"]
     assert capacity >= 200
+
+
+# ---- LOOP 4, UPGRADE 1: infeasible requests cost ZERO LLM calls ----
+@pytest.mark.asyncio
+async def test_feasibility_precheck_spends_no_llm_calls():
+    class CountingLLM:
+        name = "counting"
+        calls = 0
+        async def generate_draft(self, *a, **k):
+            CountingLLM.calls += 1
+            raise AssertionError("must not be called for infeasible request")
+    from iparty.core.exceptions import NoValidPlanError
+    req = PartyRequest(honoree_name="Z", honoree_age=7,
+                       party_date=date.today() + timedelta(days=9),
+                       guest_count=60, budget=3)
+    with pytest.raises(NoValidPlanError) as ei:
+        await TTLPartyPlanner(CountingLLM(), CAT, TTLOrchestrator("pre")).plan(req)
+    assert CountingLLM.calls == 0
+    assert ei.value.telemetry.get("llm_calls") == 0
+    assert ei.value.minimum_feasible_budget > 3
+
+
+# ---- LOOP 4, UPGRADE 2: HALF_OPEN admits exactly one probe ----
+@pytest.mark.asyncio
+async def test_half_open_single_probe():
+    from iparty.orchestration.ttl_engine import CircuitBreaker
+    cb = CircuitBreaker(name="probe-test", failure_threshold=2, cooldown_seconds=0.03)
+    hits = {"n": 0}
+    async def failing():
+        hits["n"] += 1
+        await asyncio.sleep(0.02)
+        raise ValueError("down")
+    for _ in range(2):
+        with pytest.raises(ValueError):
+            await cb.call(failing)
+    await asyncio.sleep(0.04)
+    hits["n"] = 0
+    async def attempt():
+        try:
+            await cb.call(failing)
+        except Exception:
+            pass
+    await asyncio.gather(*[attempt() for _ in range(20)])
+    assert hits["n"] == 1  # exactly one probe reaches the provider
+
+
+# ---- LOOP 4, UPGRADE 3: overall request deadline bounds latency ----
+@pytest.mark.asyncio
+async def test_request_deadline_bounds_latency():
+    import time
+    orch = TTLOrchestrator("deadline-test")
+    async def slow(i):
+        await asyncio.sleep(0.05)
+        return i
+    t0 = time.monotonic()
+    _, tel = await orch.run_verified(slow, lambda v: (False, 0.1, None),
+                                     n=100, consecutive_fail_limit=999,
+                                     deadline_seconds=0.12)
+    assert time.monotonic() - t0 < 1.0
+    assert any("deadline" in e for e in tel.pattern_log)
+
+
+# ---- LOOP 4, UPGRADE 4: verifier feedback reaches the model ----
+@pytest.mark.asyncio
+async def test_verifier_feedback_is_passed_to_model():
+    from iparty.llm.client import MockClient
+
+    seen = {"feedback": None}
+
+    class SpyMock(MockClient):
+        async def generate_draft(self, request, catalog, temperature=0.5, feedback=None):
+            if feedback is not None:
+                seen["feedback"] = feedback
+            return await super().generate_draft(request, catalog, temperature, feedback=feedback)
+
+    req = PartyRequest(honoree_name="R", honoree_age=7,
+                       party_date=date.today() + timedelta(days=9),
+                       guest_count=12, budget=300)
+    # flaw_rate=1.0: first candidate always violates budget -> feedback must flow
+    result = await TTLPartyPlanner(SpyMock(flaw_rate=1.0), CAT,
+                                   TTLOrchestrator("fb")).plan(req)
+    assert result.status == "verified"
+    assert seen["feedback"] and "BUDGET_EXCEEDED" in seen["feedback"]
+    assert result.telemetry["llm_calls"] == 2  # fail once, repair once

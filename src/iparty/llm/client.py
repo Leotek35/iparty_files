@@ -25,7 +25,8 @@ class LLMClient(Protocol):
     name: str
 
     async def generate_draft(
-        self, request: PartyRequest, catalog: Catalog, temperature: float = 0.5
+        self, request: PartyRequest, catalog: Catalog,
+        temperature: float = 0.5, feedback: "str | None" = None,
     ) -> PlanDraft: ...
 
 
@@ -50,11 +51,15 @@ class AnthropicClient:
         self._client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
         self._model = settings.ANTHROPIC_MODEL
 
-    async def generate_draft(self, request, catalog, temperature=0.5) -> PlanDraft:
+    async def generate_draft(self, request, catalog, temperature=0.5, feedback=None) -> PlanDraft:
+        user = build_user_prompt(request, catalog)
+        if feedback:
+            user += ("\n\nIMPORTANT — your previous selection failed verification:\n"
+                     + feedback + "\nReturn a corrected JSON selection.")
         resp = await self._client.messages.create(
             model=self._model, max_tokens=settings.ANTHROPIC_MAX_TOKENS,
             temperature=min(1.0, temperature), system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": build_user_prompt(request, catalog)}],
+            messages=[{"role": "user", "content": user}],
         )
         text = "".join(b.text for b in resp.content if b.type == "text")
         return _parse_draft_json(text)
@@ -72,7 +77,7 @@ class MockClient:
         self._flaw_rate = flaw_rate
         self._call = 0
 
-    async def generate_draft(self, request, catalog, temperature=0.5) -> PlanDraft:
+    async def generate_draft(self, request, catalog, temperature=0.5, feedback=None) -> PlanDraft:
         self._call += 1
         rng = random.Random(
             hash((request.honoree_name, request.guest_count, self._seed, self._call)) & 0xFFFFFFFF
@@ -86,6 +91,11 @@ class MockClient:
             ["Dinosaurs", "Space Explorers", "Under the Sea", "Superheroes", "Rainbow Magic"]
         )
         base = base.model_copy(update={"theme": theme})
+
+        # Verifier-guided repair: with concrete feedback, the mock (like a real
+        # model told exactly what to fix) returns the compliant base plan.
+        if feedback:
+            return base
 
         flawed = rng.random() < self._flaw_rate
         if not flawed:

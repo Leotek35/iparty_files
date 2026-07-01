@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     HARD_TIMEOUT_SECONDS: float = Field(default=40.0, gt=0)
     WATCHDOG_MAX_RETRIES: int = Field(default=1, ge=0)
 
+    # Overall per-request wall-clock budget across ALL candidates/retries.
+    REQUEST_DEADLINE_SECONDS: float = Field(default=90.0, gt=0)
+
     # Verifier tolerances
     BUDGET_TOLERANCE: float = Field(default=0.0, ge=0, le=0.25)
     BUDGET_FLOOR_FRACTION: float = Field(default=0.25, ge=0, le=1)
