@@ -131,6 +131,11 @@ def parse_forbidden_allergens(restrictions: str) -> set[str]:
     for key, allergens in _RESTRICTION_TO_ALLERGENS.items():
         if key in text:
             forbidden |= allergens
+    # Vegan excludes all animal-derived allergen categories we track. (Within
+    # this catalog's taxonomy that is milk, egg, fish, shellfish; honey/gelatin
+    # would need explicit item flags in a richer catalog.)
+    if "vegan" in text:
+        forbidden |= {"milk", "egg", "fish", "shellfish"}
     return forbidden
 
 

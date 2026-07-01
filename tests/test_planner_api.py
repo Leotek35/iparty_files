@@ -50,8 +50,8 @@ def test_endpoints():
     r = client.post("/api/v1/plan", json=ok)
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "verified"
-    # Infeasible -> honest 422 with a minimum budget, NOT a shipped invalid plan.
+    # Infeasible -> honest 409 with a minimum budget, NOT a shipped invalid plan.
     bad = {**ok, "budget": 3, "guest_count": 60}
     r2 = client.post("/api/v1/plan", json=bad)
-    assert r2.status_code == 422
+    assert r2.status_code == 409
     assert r2.json()["detail"]["minimum_feasible_budget"] > 3

@@ -260,6 +260,17 @@ class TTLOrchestrator:
                     tel.event("consecutive-failure breaker tripped")
                     break
                 continue
+            except Exception as exc:  # noqa: BLE001
+                # Provider/transport error on ONE candidate must not abort the
+                # request: count it as a failed candidate and keep sampling.
+                # (The breaker above has already recorded the failure.)
+                tel.event(f"candidate {i}: produce error ({type(exc).__name__})")
+                consecutive += 1
+                if consecutive >= consecutive_fail_limit:
+                    tel.circuit_breaker_tripped = True
+                    tel.event("consecutive-failure breaker tripped")
+                    break
+                continue
 
             tel.candidates_generated += 1
             tel.llm_calls += 1

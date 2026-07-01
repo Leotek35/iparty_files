@@ -273,7 +273,7 @@ $("party-form").addEventListener("submit", async (e)=>{
   try{
     const r = await fetch("/api/v1/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(req)});
     await stagesPromise;
-    if(r.status===422){ // honest infeasible response — no invalid plan is ever shown
+    if(r.status===409){ // honest infeasible response — no invalid plan is ever shown
       const {detail} = await r.json();
       renderInfeasible(detail, req); return;
     }

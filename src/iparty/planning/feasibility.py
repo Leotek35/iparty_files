@@ -50,9 +50,27 @@ def cheapest_compliant_draft(request, catalog: Catalog) -> PlanDraft | None:
         units = max(1, -(-guests // per_unit_serv))  # ceil
         food_sel.append(Selection(sku=cheapest.sku, quantity=units))
 
-    # supplies: cheapest
-    supplies = catalog.by_category("supplies")
-    sup = min(supplies, key=lambda i: i.price_for(1, guests))
+    # supplies: cheapest option that COVERS the guest count.
+    # per_person items cover everyone at quantity 1; flat packs need
+    # ceil(guests / serves) units; serves=0 items (pure decor) can't qualify.
+    def supplies_option(item):
+        if item.unit == "per_person":
+            return 1, item.price_for(1, guests)
+        if item.serves <= 0:
+            return None
+        units = max(1, -(-guests // item.serves))
+        return units, item.price_for(units, guests)
+
+    best_sup = None
+    for cand in catalog.by_category("supplies"):
+        opt = supplies_option(cand)
+        if opt is None:
+            continue
+        if best_sup is None or opt[1] < best_sup[2]:
+            best_sup = (cand, opt[0], opt[1])
+    if best_sup is None:
+        return None
+    sup, sup_qty = best_sup[0], best_sup[1]
     # activities: cheapest age-appropriate
     acts = [a for a in catalog.by_category("activities")
             if a.min_age <= request.honoree_age <= a.max_age]
@@ -63,7 +81,7 @@ def cheapest_compliant_draft(request, catalog: Catalog) -> PlanDraft | None:
     theme = request.theme or "Celebration"
     return PlanDraft(
         theme=theme, venue_sku=venue.sku,
-        food=food_sel, supplies=[Selection(sku=sup.sku, quantity=1)],
+        food=food_sel, supplies=[Selection(sku=sup.sku, quantity=sup_qty)],
         activities=[Selection(sku=act.sku, quantity=1)],
         schedule=_default_schedule(theme),
         notes=(f"Allergen-safe for: {request.dietary_restrictions}." if forbidden or veg else ""),

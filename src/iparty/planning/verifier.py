@@ -76,6 +76,19 @@ def verify_plan(plan: PartyPlan, request: PartyRequest, catalog: Catalog) -> Ver
     check(total_servings >= request.guest_count, "FOOD_UNDERSCALED", "error",
           f"Menu serves {total_servings} but {request.guest_count} guests are coming.")
 
+    # 6b. Supplies scaling — place-setting capacity must cover guests.
+    #     per_person supplies cover everyone; flat packs cover serves * quantity.
+    capacity = 0
+    for li in plan.line_items:
+        if li.category != "supplies":
+            continue
+        item = catalog.get(li.sku)
+        if item is None:
+            continue
+        capacity += request.guest_count if item.unit == "per_person" else item.serves * li.quantity
+    check(capacity >= request.guest_count, "SUPPLIES_UNDERSCALED", "error",
+          f"Supplies cover {capacity} place settings but {request.guest_count} guests are coming.")
+
     # 7. ALLERGEN SAFETY — real check against catalog allergen profiles.
     forbidden = parse_forbidden_allergens(request.dietary_restrictions)
     if forbidden:
