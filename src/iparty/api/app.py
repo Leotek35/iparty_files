@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..core.config import settings
+from .events import router as events_router
 from .routes import router
 
 WEB_DIR = Path(__file__).resolve().parents[3] / "web"
@@ -21,6 +22,7 @@ def create_app() -> FastAPI:
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
     )
     app.include_router(router, prefix="/api/v1")
+    app.include_router(events_router, prefix="/api/v1")
 
     @app.get("/health")
     async def health() -> dict:

@@ -178,6 +178,24 @@ footer code{font-family:"Space Mono",monospace;background:#fff;padding:2px 7px;b
 
 <script>
 const $ = (id) => document.getElementById(id);
+
+// ---- Adoption instrumentation (privacy-safe: no names or free text sent) ----
+const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9-]/g,"-");
+function track(event, meta){
+  try{
+    fetch("/api/v1/events",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({session_id:SESSION_ID,event,meta:meta||{}}),keepalive:true}).catch(()=>{});
+  }catch(_){}
+}
+function guestsBand(n){ return n<=10?"1-10":n<=25?"11-25":n<=60?"26-60":"61+"; }
+function budgetBand(b){ return b<100?"<100":b<=300?"100-300":b<=800?"301-800":"801+"; }
+track("page_view");
+let _formStarted=false;
+document.addEventListener("input",(e)=>{
+  if(!_formStarted && e.target.closest && e.target.closest("#party-form")){
+    _formStarted=true; track("form_started");
+  }
+},true);
 // Default the date to 3 weeks out
 (() => { const d=new Date(); d.setDate(d.getDate()+21); $("party_date").value=d.toISOString().slice(0,10); })();
 fetch("/health").then(r=>r.json()).then(h=>{ if(h.backend) $("backend-tag").textContent=h.backend; }).catch(()=>{});
@@ -247,6 +265,71 @@ function renderPlan(p,req){
   </div>`;
 }
 
+function planToMarkdown(p, req){
+  const lines = [];
+  lines.push(`# ${p.theme} — ${req.honoree_name}'s Party`);
+  lines.push(`Venue: ${p.venue} · Guests: ${req.guest_count} · Date: ${req.party_date}`);
+  lines.push(`Total: $${p.total_cost.toFixed(2)} (budget $${req.budget.toFixed(2)}) — verified ✓`);
+  lines.push("", "## Budget");
+  p.line_items.forEach(li=>lines.push(`- ${li.description}${li.quantity>1?` ×${li.quantity}`:""} — $${li.subtotal.toFixed(2)}`));
+  lines.push("", "## Schedule");
+  p.schedule.forEach(s=>lines.push(`- ${s.start}–${s.end}: ${s.activity}`));
+  lines.push("", "## Activities");
+  p.activities.forEach(a=>lines.push(`- ${a}`));
+  lines.push("", "## Supplies");
+  p.supplies.forEach(a=>lines.push(`- ${a}`));
+  if(p.notes) lines.push("", `Notes: ${p.notes}`);
+  return lines.join("\n");
+}
+
+async function copyPlan(p, req, btn){
+  const text = planToMarkdown(p, req);
+  let ok = false;
+  try{ await navigator.clipboard.writeText(text); ok = true; }
+  catch(_){
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try{ ok = document.execCommand("copy"); }catch(_){}
+    ta.remove();
+  }
+  if(ok){ btn.textContent = "Copied ✓"; setTimeout(()=>btn.textContent="Copy plan",1800); track("plan_copied"); }
+}
+
+function downloadPlan(p, req){
+  const blob = new Blob([planToMarkdown(p, req)], {type:"text/markdown"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `iparty-plan-${(req.honoree_name||"party").toLowerCase().replace(/[^a-z0-9]+/g,"-")}.md`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+  track("plan_downloaded");
+}
+
+function renderActions(p, req){
+  const bar = document.createElement("div");
+  bar.className = "plan"; bar.style.paddingTop = "0";
+  bar.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="cta" id="copy-btn" style="flex:1;min-width:130px">Copy plan</button>
+      <button class="cta" id="dl-btn" style="flex:1;min-width:130px;background:#1F2937">Download .md</button>
+    </div>
+    <div id="fb" style="margin-top:16px;background:var(--cream);border-radius:11px;padding:13px 14px">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:8px">Would you use this plan for a real party?</div>
+      <div style="display:flex;gap:8px">
+        <button class="chip" data-a="yes" style="cursor:pointer">👍 Yes</button>
+        <button class="chip" data-a="maybe" style="cursor:pointer">🤔 Maybe</button>
+        <button class="chip" data-a="no" style="cursor:pointer">👎 No</button>
+      </div>
+    </div>`;
+  $("plan").appendChild(bar);
+  $("copy-btn").addEventListener("click", (e)=>copyPlan(p, req, e.target));
+  $("dl-btn").addEventListener("click", ()=>downloadPlan(p, req));
+  bar.querySelectorAll("#fb .chip").forEach(b=>b.addEventListener("click",()=>{
+    track("feedback_answered",{answer:b.dataset.a});
+    $("fb").innerHTML = '<div style="font-size:13.5px;color:var(--mint);font-weight:600">Thanks — that helps us improve. 💛</div>';
+  }));
+}
+
 function renderInfeasible(detail, req){
   $("ledger-status").textContent = "infeasible";
   const min = detail.minimum_feasible_budget;
@@ -269,20 +352,26 @@ $("party-form").addEventListener("submit", async (e)=>{
     budget:+$("budget").value, theme:$("theme").value,
     dietary_restrictions:$("dietary_restrictions").value, location_type:$("location_type").value,
   };
+  track("plan_requested",{has_diet:String(!!req.dietary_restrictions.trim()),
+    guests_band:guestsBand(req.guest_count), budget_band:budgetBand(req.budget)});
   const stagesPromise = animateStages();
   try{
     const r = await fetch("/api/v1/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(req)});
     await stagesPromise;
     if(r.status===409){ // honest infeasible response — no invalid plan is ever shown
       const {detail} = await r.json();
+      track("plan_infeasible",{status:"409"});
       renderInfeasible(detail, req); return;
     }
+    if(r.status===503){ track("plan_unavailable",{status:"503"}); }
     if(!r.ok){ const err=await r.json(); throw new Error(typeof err.detail==="string"?err.detail:"planning failed"); }
     const data = await r.json();
+    track("plan_verified",{status:"200"});
     $("ledger-status").textContent = "complete";
     renderTelemetry(data.telemetry);
     renderVerifier(data.verification);
     renderPlan(data.plan, data.request);
+    renderActions(data.plan, data.request);
   }catch(err){
     $("result").innerHTML = `<div class="empty"><div class="big">⚠️</div><p style="margin-top:14px">${err.message}<br>Check the server is running and try again.</p></div>`;
   }finally{ btn.disabled=false; btn.textContent="Plan the party"; }
