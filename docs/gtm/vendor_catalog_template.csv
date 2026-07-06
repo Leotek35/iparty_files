@@ -1,0 +1,4 @@
+sku,category,name,unit,unit_price,serves,allergens,vegetarian,min_age,max_age,location_types
+BAK-GF-CAKE,food,Sunrise Bakery GF cake (serves 20),flat,58.00,20,egg;milk,true,0,120,
+BAK-VG-CUPS,food,Sunrise Bakery vegan cupcakes (dozen),flat,36.00,12,,true,0,120,
+VEN-PLAYLOFT,venue,PlayLoft party room (2hr),flat,325.00,0,,true,1,12,venue

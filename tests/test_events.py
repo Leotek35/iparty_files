@@ -78,3 +78,12 @@ def test_flood_capped_per_session(client):
     assert c.post("/api/v1/events",
                   json={"session_id": "legit-user-0001", "event": "page_view", "meta": {}}
                   ).status_code == 204
+
+
+def test_booking_interest_tracked(client):
+    c, _ = client
+    for e in ["page_view", "plan_verified", "booking_interest"]:
+        assert c.post("/api/v1/events",
+                      json={"session_id": SID, "event": e, "meta": {}}).status_code == 204
+    s = c.get("/api/v1/events/summary").json()
+    assert s["booking_interest_rate"] == 1.0

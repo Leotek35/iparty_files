@@ -128,12 +128,12 @@ footer code{font-family:"Space Mono",monospace;background:#fff;padding:2px 7px;b
 <header><div class="wrap"><div class="brand"><span class="dot"></span>iParty</div></div></header>
 
 <section class="wrap hero">
-  <div class="eyebrow">TTL-verified planning</div>
-  <h1>You describe the kid.<br><em>We guarantee the party.</em></h1>
-  <p>Every plan is generated, then checked against your real constraints — budget, headcount, dietary needs, schedule — before you ever see it. If it doesn't pass, you don't get it.</p>
+  <div class="eyebrow">Verified party planning</div>
+  <h1>The party planner that<br><em>checks before it promises.</em></h1>
+  <p>Built for parents who can't afford surprises — tight budgets, food allergies, real headcounts. Every plan is verified against your constraints before you see it: the budget adds up, portions cover every guest, and the menu is checked against declared allergen data. If no plan can work, we say so and tell you what would.</p>
   <div class="guarantee">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Budget-valid or it doesn't ship
+    Budget-verified · Allergen-checked · Honest when it can't be done
   </div>
 </section>
 
@@ -313,6 +313,7 @@ function renderActions(p, req){
       <button class="cta" id="copy-btn" style="flex:1;min-width:130px">Copy plan</button>
       <button class="cta" id="dl-btn" style="flex:1;min-width:130px;background:#1F2937">Download .md</button>
     </div>
+    <button class="cta" id="book-btn" style="width:100%;margin-top:10px;background:var(--mint)">Help me book this party</button>
     <div id="fb" style="margin-top:16px;background:var(--cream);border-radius:11px;padding:13px 14px">
       <div style="font-size:13.5px;font-weight:600;margin-bottom:8px">Would you use this plan for a real party?</div>
       <div style="display:flex;gap:8px">
@@ -324,6 +325,10 @@ function renderActions(p, req){
   $("plan").appendChild(bar);
   $("copy-btn").addEventListener("click", (e)=>copyPlan(p, req, e.target));
   $("dl-btn").addEventListener("click", ()=>downloadPlan(p, req));
+  $("book-btn").addEventListener("click", (e)=>{
+    track("booking_interest");
+    e.target.outerHTML = '<div style="width:100%;margin-top:10px;background:var(--mint-soft);color:var(--mint);border-radius:12px;padding:13px;text-align:center;font-weight:600;font-size:14px">You\'re on the booking waitlist — we\'ll reach out when booking opens in your area. 🎉</div>';
+  });
   bar.querySelectorAll("#fb .chip").forEach(b=>b.addEventListener("click",()=>{
     track("feedback_answered",{answer:b.dataset.a});
     $("fb").innerHTML = '<div style="font-size:13.5px;color:var(--mint);font-weight:600">Thanks — that helps us improve. 💛</div>';

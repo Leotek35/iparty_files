@@ -45,6 +45,7 @@ EventName = Literal[
     "plan_unavailable",
     "plan_copied",
     "plan_downloaded",
+    "booking_interest",
     "feedback_answered",
 ]
 
@@ -138,6 +139,7 @@ async def events_summary() -> dict:
 
     verified = n("plan_verified")
     taken = len(by_event.get("plan_copied", set()) | by_event.get("plan_downloaded", set()))
+    booking = n("booking_interest")
     fb_total = sum(feedback.values())
     return {
         "total_events": len(events),
@@ -154,6 +156,8 @@ async def events_summary() -> dict:
         },
         "plan_taken_sessions": taken,
         "plan_taken_rate": rate(taken, verified),
+        "booking_interest_sessions": booking,
+        "booking_interest_rate": rate(booking, verified),
         "feedback": {**feedback, "yes_rate": rate(feedback["yes"], fb_total)},
         "outcomes": {"infeasible_sessions": n("plan_infeasible"),
                      "unavailable_sessions": n("plan_unavailable")},

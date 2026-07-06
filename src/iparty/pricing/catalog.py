@@ -12,6 +12,7 @@ are intentionally conservative. Allergen data uses the FDA "big-9" allergens.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal, Protocol
 
 Category = Literal["venue", "food", "supplies", "activities"]
@@ -113,6 +114,44 @@ class StaticCatalog:
 
     def by_category(self, category: Category) -> list[CatalogItem]:
         return [i for i in self._items if i.category == category]
+
+
+def load_catalog_csv(path: "str | Path") -> "StaticCatalog":
+    """Vendor onboarding without code: build a catalog from a CSV.
+
+    Columns: sku,category,name,unit,unit_price,serves,allergens,vegetarian,
+             min_age,max_age,location_types
+    allergens: semicolon-separated FDA big-9 keys (blank = none)
+    location_types: semicolon-separated (blank = all)
+    Unknown allergen keys raise immediately — a typo in safety data must fail
+    loudly at load time, never silently at verify time.
+    """
+    import csv
+    from pathlib import Path as _Path
+
+    items: list[CatalogItem] = []
+    with _Path(path).open(newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            allergens = frozenset(a.strip() for a in row.get("allergens", "").split(";") if a.strip())
+            unknown = allergens - ALLERGENS
+            if unknown:
+                raise ValueError(f"SKU {row['sku']}: unknown allergen keys {sorted(unknown)}; "
+                                 f"allowed: {sorted(ALLERGENS)}")
+            locs = frozenset(x.strip() for x in row.get("location_types", "").split(";") if x.strip())
+            items.append(CatalogItem(
+                sku=row["sku"].strip(), category=row["category"].strip(),  # type: ignore[arg-type]
+                name=row["name"].strip(), unit=row["unit"].strip(),        # type: ignore[arg-type]
+                unit_price=float(row["unit_price"]),
+                serves=int(row.get("serves") or 0),
+                allergens=allergens,
+                vegetarian=(row.get("vegetarian", "true").strip().lower() != "false"),
+                min_age=int(row.get("min_age") or 0),
+                max_age=int(row.get("max_age") or 120),
+                location_types=locs or frozenset({"home", "venue", "park", "restaurant"}),
+            ))
+    if not items:
+        raise ValueError(f"catalog CSV {path} contained no items")
+    return StaticCatalog(items)
 
 
 # Map free-text dietary restrictions to allergens that MUST be excluded.
