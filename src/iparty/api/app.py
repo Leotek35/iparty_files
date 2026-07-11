@@ -24,6 +24,14 @@ def create_app() -> FastAPI:
     app.include_router(router, prefix="/api/v1")
     app.include_router(events_router, prefix="/api/v1")
 
+    @app.middleware("http")
+    async def security_headers(request, call_next):  # noqa: ANN001, ANN202
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
     @app.get("/health")
     async def health() -> dict:
         return {"status": "ok", "version": settings.APP_VERSION, "backend": settings.LLM_BACKEND}
