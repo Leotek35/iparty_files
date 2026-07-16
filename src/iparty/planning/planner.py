@@ -18,7 +18,7 @@ from ..core.exceptions import NoValidPlanError
 from ..core.logging import get_logger
 from ..llm.client import LLMClient
 from ..orchestration.ttl_engine import TTLOrchestrator
-from ..pricing.catalog import Catalog
+from ..pricing.catalog import Catalog, unrecognized_restrictions
 from .feasibility import minimum_feasible_budget
 from .grounding import ground_draft
 from .models import PartyRequest, PlanResult
@@ -87,6 +87,30 @@ class TTLPartyPlanner:
                 minimum_feasible_budget=min_budget,
                 telemetry=telemetry.as_dict(),
             )
+
+        plan = candidate.value
+        extra_notes = []
+        unrec = unrecognized_restrictions(request.dietary_restrictions)
+        if unrec:
+            extra_notes.append(
+                "Heads-up: we could not auto-verify "
+                + ", ".join(f"'{u}'" for u in unrec)
+                + " against catalog data — a coordinator should confirm these by hand.")
+        text = request.dietary_restrictions.lower()
+        if any(k in text for k in ("kosher", "halal", "jain")):
+            extra_notes.append(
+                "Menu is fully vegetarian as the safe approximation for your "
+                "dietary tradition; certified vendors can be arranged on request.")
+        if request.special_requests.strip():
+            extra_notes.append("Special requests noted for your coordinator: "
+                               + request.special_requests.strip())
+        if plan.total_cost < request.budget * 0.35 and request.budget >= 1000:
+            extra_notes.append(
+                f"We built the richest package our verified catalog offers "
+                f"(${plan.total_cost:,.2f}); your budget allows more — a coordinator "
+                f"can source premium vendors beyond the standard catalog.")
+        if extra_notes:
+            plan.notes = " ".join(filter(None, [plan.notes] + extra_notes)).strip()
 
         return PlanResult(
             status="verified",

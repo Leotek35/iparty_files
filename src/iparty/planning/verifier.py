@@ -7,7 +7,8 @@ profiles, not string tags), age-appropriateness, budget, scaling, and schedule.
 from __future__ import annotations
 
 from ..core.config import settings
-from ..pricing.catalog import Catalog, parse_forbidden_allergens, requires_vegetarian
+from ..pricing.catalog import (Catalog, parse_forbidden_allergens, requires_vegetarian,
+                               unrecognized_restrictions)
 from .models import PartyPlan, PartyRequest, VerificationReport, Violation
 
 
@@ -105,6 +106,24 @@ def verify_plan(plan: PartyPlan, request: PartyRequest, catalog: Catalog) -> Ver
         veg_servings = sum(m.servings for m in plan.menu if m.vegetarian)
         check(veg_servings >= request.guest_count, "INSUFFICIENT_VEGETARIAN", "error",
               f"Only {veg_servings} vegetarian servings for {request.guest_count} guests.")
+
+    # 8b. Schedule respects the requested time window (warning — hosts can adjust).
+    win_start = _parse_hhmm(getattr(request, "start_time", "14:00") or "14:00")
+    win_len = int(float(getattr(request, "duration_hours", 2.5)) * 60)
+    if win_start is not None and plan.schedule:
+        firsts = _parse_hhmm(plan.schedule[0].start)
+        lasts = _parse_hhmm(plan.schedule[-1].end)
+        in_window = (firsts is not None and lasts is not None
+                     and firsts >= win_start and lasts <= win_start + win_len + 1)
+        check(in_window, "SCHEDULE_OUTSIDE_WINDOW", "warning",
+              f"Schedule falls outside the requested "
+              f"{getattr(request, 'start_time', '14:00')} + {win_len // 60}h window.")
+
+    # 8c. Honesty about unverifiable diets: never silently drop a restriction.
+    unrec = unrecognized_restrictions(request.dietary_restrictions)
+    check(not unrec, "UNVERIFIED_RESTRICTION", "warning",
+          "Could not verify against catalog data: " + ", ".join(f"'{u}'" for u in unrec) +
+          ". Flagged for manual confirmation — not silently ignored.")
 
     # 9. Age-appropriateness — chosen activities fit the honoree's age.
     bad_age = []

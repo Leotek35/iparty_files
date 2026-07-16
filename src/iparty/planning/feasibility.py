@@ -6,13 +6,36 @@ from ..pricing.catalog import Catalog, parse_forbidden_allergens, requires_veget
 from .models import PlanDraft, ScheduleSlot, Selection
 
 
+def _hhmm(minutes: int) -> str:
+    minutes = max(0, min(minutes, 23 * 60 + 59))
+    return f"{minutes // 60:02d}:{minutes % 60:02d}"
+
+
+def default_schedule(theme: str, start_time: str = "14:00",
+                     duration_hours: float = 2.5) -> list[ScheduleSlot]:
+    """Build the run-of-show inside the host's requested time window."""
+    try:
+        h, m = start_time.split(":")
+        start = int(h) * 60 + int(m)
+    except Exception:  # noqa: BLE001
+        start = 14 * 60
+    total = int(duration_hours * 60)
+    total = min(total, 23 * 60 + 59 - start)  # never spill past midnight
+    # proportional slots: welcome 15%, activities 45%, cake 20%, farewell 20%
+    cuts = [0, int(total * 0.15), int(total * 0.60), int(total * 0.80), total]
+    labels = ["Guests arrive & welcome", f"{theme} games & activities",
+              "Cake & singing", "Free play & goodbyes"]
+    slots = []
+    for i, label in enumerate(labels):
+        a, b = start + cuts[i], start + cuts[i + 1]
+        if b > a:
+            slots.append(ScheduleSlot(start=_hhmm(a), end=_hhmm(b), activity=label))
+    return slots
+
+
+# Backwards-compatible alias used by earlier call sites/tests.
 def _default_schedule(theme: str) -> list[ScheduleSlot]:
-    return [
-        ScheduleSlot(start="14:00", end="14:30", activity="Guests arrive & welcome"),
-        ScheduleSlot(start="14:30", end="15:30", activity=f"{theme} games & activities"),
-        ScheduleSlot(start="15:30", end="16:00", activity="Cake & singing"),
-        ScheduleSlot(start="16:00", end="16:30", activity="Free play & goodbyes"),
-    ]
+    return default_schedule(theme)
 
 
 def cheapest_compliant_draft(request, catalog: Catalog) -> PlanDraft | None:
@@ -83,7 +106,8 @@ def cheapest_compliant_draft(request, catalog: Catalog) -> PlanDraft | None:
         theme=theme, venue_sku=venue.sku,
         food=food_sel, supplies=[Selection(sku=sup.sku, quantity=sup_qty)],
         activities=[Selection(sku=act.sku, quantity=1)],
-        schedule=_default_schedule(theme),
+        schedule=default_schedule(theme, getattr(request, "start_time", "14:00"),
+                                  getattr(request, "duration_hours", 2.5)),
         notes=(f"Allergen-safe for: {request.dietary_restrictions}." if forbidden or veg else ""),
     )
 

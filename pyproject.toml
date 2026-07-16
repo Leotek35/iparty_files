@@ -1,6 +1,6 @@
 [project]
 name = "iparty"
-version = "1.0.0"
+version = "1.1.0"
 description = "Verifier-gated birthday-party planning on the TTL reliability engine"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -39,4 +39,4 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 110
-ta
+target-version = "py310"

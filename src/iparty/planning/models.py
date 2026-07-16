@@ -17,6 +17,9 @@ class PartyRequest(BaseModel):
     theme: str = Field(default="", max_length=120)
     dietary_restrictions: str = Field(default="", max_length=300)
     location_type: Literal["home", "venue", "park", "restaurant"] = "home"
+    start_time: str = Field(default="14:00", pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    duration_hours: float = Field(default=2.5, ge=1.0, le=8.0)
+    special_requests: str = Field(default="", max_length=500)
 
     @field_validator("party_date")
     @classmethod

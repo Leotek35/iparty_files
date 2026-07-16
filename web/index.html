@@ -252,8 +252,14 @@ footer .mono{font-size:12px}
           <select id="location_type"><option value="home">At home</option><option value="venue">A venue</option><option value="park">A park</option><option value="restaurant">A restaurant</option></select>
         </div>
       </div>
+      <div class="row">
+        <div><label for="start_time">Starts at</label><input id="start_time" type="time" value="14:00" required /></div>
+        <div><label for="duration_hours">Length</label>
+          <select id="duration_hours"><option value="1.5">1½ hours</option><option value="2">2 hours</option><option value="2.5" selected>2½ hours</option><option value="3">3 hours</option><option value="4">4 hours</option><option value="6">6 hours</option></select></div>
+      </div>
       <div><label for="theme">Theme <span style="font-weight:400">(optional)</span></label><input id="theme" value="Under the Sea" placeholder="We'll choose if blank" /></div>
-      <div><label for="dietary_restrictions">Allergies or dietary needs <span style="font-weight:400">(optional)</span></label><input id="dietary_restrictions" value="gluten-free" placeholder="e.g. nut allergy, vegan" /></div>
+      <div><label for="dietary_restrictions">Allergies or dietary needs <span style="font-weight:400">(optional)</span></label><input id="dietary_restrictions" value="gluten-free" placeholder="e.g. nut allergy, vegan, kosher, halal" /></div>
+      <div><label for="special_requests">Special requests <span style="font-weight:400">(optional)</span></label><input id="special_requests" value="" placeholder="e.g. wheelchair access, rain backup, quiet music, surprise party" maxlength="500" /></div>
       <button class="cta" type="submit" id="submit-btn">Build my verified plan</button>
     </form>
   </section>
@@ -403,6 +409,7 @@ function renderPass(data, req){
       <div class="sect"><h3>Run of show</h3>${sched}</div>
       <div class="sect"><h3>Activities</h3><div class="tags">${acts}</div></div>
       <div class="sect"><h3>Supplies</h3><div class="tags">${supplies}</div></div>
+      ${(v.violations||[]).filter(x=>x.severity==="warning").map(w=>`<div class="note" style="border-left:3px solid #d97706;padding-left:10px">${w.message}</div>`).join("")}
       ${p.notes?`<div class="note">${p.notes}</div>`:""}
 
       <div class="actions">
@@ -478,6 +485,8 @@ $("party-form").addEventListener("submit", async (e)=>{
     party_date:$("party_date").value, guest_count:+$("guest_count").value,
     budget:+$("budget").value, theme:$("theme").value,
     dietary_restrictions:$("dietary_restrictions").value, location_type:$("location_type").value,
+    start_time:$("start_time").value || "14:00", duration_hours:+$("duration_hours").value,
+    special_requests:$("special_requests").value,
   };
   track("plan_requested",{has_diet:String(!!req.dietary_restrictions.trim()),
     guests_band:guestsBand(req.guest_count), budget_band:budgetBand(req.budget)});

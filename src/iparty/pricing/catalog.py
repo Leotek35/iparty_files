@@ -85,13 +85,27 @@ _ITEMS: list[CatalogItem] = [
                 allergens=frozenset()),
     CatalogItem("FD-PBJ", "food", "PB&J sandwiches (serves 10)", "flat", 18.0, serves=10,
                 allergens=frozenset({"peanut", "wheat"})),  # deliberately allergen-heavy
+    CatalogItem("FD-CATER", "food", "Premium catering buffet (per person)", "per_person", 24.0, serves=1,
+                allergens=frozenset({"milk", "wheat", "egg", "soy"}), vegetarian=False),
     # --- supplies ---
     CatalogItem("SUP-BASIC", "supplies", "Basic party pack (16 place settings)", "flat", 35.0, serves=16),
     CatalogItem("SUP-DELUXE", "supplies", "Deluxe themed pack (24 settings)", "flat", 65.0, serves=24),
     CatalogItem("SUP-TABLE", "supplies", "Tableware (per person)", "per_person", 2.25),
     CatalogItem("SUP-DECOR", "supplies", "Balloon & decoration kit", "flat", 40.0),
+    CatalogItem("SUP-ECO", "supplies", "Compostable eco tableware (per person)", "per_person", 3.0),
+    CatalogItem("SUP-PAPER", "supplies", "Simple paper tableware (per person)", "per_person", 1.25),
+    CatalogItem("SUP-FAVOR", "supplies", "Party favor gift bags (per person)", "per_person", 8.0),
     # --- activities ---
+    CatalogItem("ACT-CLASSIC", "activities", "Classic party games kit (printables & prizes)", "flat", 12.0),
     CatalogItem("ACT-GAMES", "activities", "DIY games & favors kit", "flat", 45.0),
+    CatalogItem("ACT-SENSORY", "activities", "Soft-play & sensory corner (babies)", "flat", 80.0, max_age=3),
+    CatalogItem("ACT-KARAOKE", "activities", "Karaoke setup (3 hr)", "flat", 120.0, min_age=8),
+    CatalogItem("ACT-TRIVIA", "activities", "Trivia & quiz night kit", "flat", 60.0, min_age=12),
+    CatalogItem("ACT-PHOTO", "activities", "Photo booth rental (2 hr)", "flat", 200.0, min_age=5),
+    CatalogItem("ACT-DJ", "activities", "DJ + sound system (3 hr)", "flat", 300.0, min_age=10),
+    CatalogItem("ACT-CHAR", "activities", "Costumed character visit (1 hr)", "flat", 175.0, min_age=2, max_age=10),
+    CatalogItem("ACT-STEM", "activities", "Science experiments station", "flat", 110.0, min_age=5),
+    CatalogItem("ACT-PHOTOG", "activities", "Event photographer (per hour)", "per_hour", 150.0),
     CatalogItem("ACT-BOUNCE", "activities", "Bounce house rental", "flat", 180.0, min_age=3, max_age=12),
     CatalogItem("ACT-FACE", "activities", "Face painter (2 hr)", "flat", 150.0, min_age=2),
     CatalogItem("ACT-MAGIC", "activities", "Magician (1 hr)", "per_hour", 250.0, min_age=4),
@@ -179,5 +193,31 @@ def parse_forbidden_allergens(restrictions: str) -> set[str]:
 
 
 def requires_vegetarian(restrictions: str) -> bool:
+    """Vegetarian menu required. Kosher/halal/jain are honored with a vegetarian
+    menu as the safe approximation (no mixed/uncertified meat); pescatarian is
+    satisfied by a vegetarian menu too (fish optional, never required)."""
     text = (restrictions or "").lower()
-    return "vegetarian" in text or "vegan" in text
+    return any(k in text for k in
+               ("vegetarian", "vegan", "kosher", "halal", "jain", "pescatarian"))
+
+
+# Every keyword the dietary parser understands and acts on.
+_KNOWN_DIET_KEYWORDS = tuple(_RESTRICTION_TO_ALLERGENS) + (
+    "vegan", "vegetarian", "kosher", "halal", "jain", "pescatarian",
+    "allerg", "intoleran", "free", "none", "no ",
+)
+
+
+def unrecognized_restrictions(restrictions: str) -> list[str]:
+    """Phrases in the dietary text the system cannot verify against the catalog.
+    These must be surfaced honestly, never silently dropped."""
+    text = (restrictions or "").strip().lower()
+    if not text:
+        return []
+    import re as _re
+    phrases = [p.strip(" .!") for p in _re.split(r"[,;]| and | plus |\n", text) if p.strip(" .!")]
+    unknown = []
+    for ph in phrases:
+        if not any(k in ph for k in _KNOWN_DIET_KEYWORDS):
+            unknown.append(ph[:60])
+    return unknown
