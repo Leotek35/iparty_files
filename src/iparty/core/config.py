@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     # Overall per-request wall-clock budget across ALL candidates/retries.
     REQUEST_DEADLINE_SECONDS: float = Field(default=90.0, gt=0)
 
+    # JEPA-TTL bridge: predictive candidate budgeting, preemptive repair
+    # hints, energy-based continuation, online learning from the verifier.
+    JEPA_BRIDGE_ENABLED: bool = True
+
     # Verifier tolerances
     BUDGET_TOLERANCE: float = Field(default=0.0, ge=0, le=0.25)
     BUDGET_FLOOR_FRACTION: float = Field(default=0.25, ge=0, le=1)

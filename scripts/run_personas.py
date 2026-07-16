@@ -8,7 +8,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from iparty.api.app import app  # noqa: E402
-from personas import PERSONAS  # noqa: E402
+
+_suite = sys.argv[1] if len(sys.argv) > 1 else "personas"
+PERSONAS = __import__(_suite).PERSONAS
 
 # Features the CURRENT product supports (update as we ship improvements).
 # v1.1: time window, special-requests channel, diet mappings, new catalog SKUs.
@@ -47,6 +49,24 @@ for p in PERSONAS:
     fb = []  # (severity, code, message)
     entry = {"id": p["id"], "name": p["name"], "tag": p["tag"], "status": r.status_code}
 
+    if p["expect_status"] == "flex":
+        if r.status_code == 200:
+            p = {**p, "expect_status": 200}
+        elif r.status_code == 409 and (r.json().get("detail") or {}).get("minimum_feasible_budget"):
+            fb.append(("praise", "HONEST_REFUSAL_WITH_GUIDANCE",
+                       "impossible combo refused with the minimum budget spelled out"))
+            entry["feedback"] = fb
+            results.append(entry)
+            for sev, code, msg in fb:
+                feedback_items.append({"persona": p["id"], "tag": p["tag"], "severity": sev, "code": code, "msg": msg})
+            continue
+        else:
+            fb.append(("blocker", "WRONG_STATUS", f"flex expected 200/guided-409, got {r.status_code}: {r.text[:150]}"))
+            entry["feedback"] = fb
+            results.append(entry)
+            for sev, code, msg in fb:
+                feedback_items.append({"persona": p["id"], "tag": p["tag"], "severity": sev, "code": code, "msg": msg})
+            continue
     if p["expect_status"] != 200:
         if r.status_code == p["expect_status"]:
             fb.append(("praise", "GRACEFUL_REJECTION", "App refused impossible/invalid request clearly."))
@@ -66,6 +86,7 @@ for p in PERSONAS:
     else:
         body = r.json()
         plan, verif = body["plan"], body["verification"]
+        entry["llm_calls"] = body["telemetry"]["llm_calls"]
         total = plan["total_cost"]
         budget = p["payload"]["budget"]
         guests = p["payload"]["guest_count"]
@@ -94,8 +115,9 @@ for p in PERSONAS:
         if "BUDGET_SUSPICIOUSLY_LOW" in warns and not p["luxury"]:
             fb.append(("minor", "LOW_SPEND_WARNING", "app itself flags plan may be incomplete"))
         acts = plan["activities"]
-        if len(acts) <= 1 and budget >= 1000:
-            fb.append(("major", "THIN_ACTIVITIES", f"only {len(acts)} activity for a ${budget} party"))
+        if len(acts) <= 1 and budget >= 1000 and util < 0.6:
+            fb.append(("major", "THIN_ACTIVITIES",
+                       f"only {len(acts)} activity for a ${budget} party at {util:.0%} utilization"))
         if p["payload"]["theme"] and p["payload"]["theme"].lower() not in json.dumps(plan, ensure_ascii=False).lower():
             fb.append(("minor", "THEME_IGNORED", f"asked for '{p['payload']['theme']}' theme, not reflected"))
         # dietary comprehension: did app act on the restriction at all?
@@ -129,7 +151,16 @@ agg = collections.Counter((f["severity"], f["code"].split(":")[0] if ":" not in 
 delighted = sum(1 for e in results if all(s == "praise" for s, *_ in e["feedback"]))
 blocked = sum(1 for e in results if any(s == "blocker" for s, *_ in e["feedback"]))
 majored = sum(1 for e in results if any(s == "major" for s, *_ in e["feedback"]))
-print(f"personas: 100 | delighted: {delighted} | with blockers: {blocked} | with major issues: {majored}")
+calls = [e["llm_calls"] for e in results if "llm_calls" in e]
+mean_calls = sum(calls) / len(calls) if calls else 0
+cohort = [e["llm_calls"] for e in results if e["tag"] == "learning-cohort" and "llm_calls" in e]
+half = len(cohort) // 2
+trend = (f" | learning-cohort calls first-half {sum(cohort[:half])/half:.2f} -> "
+         f"second-half {sum(cohort[half:])/(len(cohort)-half):.2f}") if half else ""
+mx = client.get("/api/v1/metrics").json().get("jepa_predictor", {})
+print(f"personas: {len(PERSONAS)} | delighted: {delighted} | with blockers: {blocked} | with major issues: {majored}")
+print(f"mean llm_calls per verified plan: {mean_calls:.2f}{trend}")
+print(f"jepa predictor: {mx}")
 print("\n--- issue frequency ---")
 for (sev, code), n in sorted(agg.items(), key=lambda kv: (sev_rank[kv[0][0]], -kv[1])):
     print(f"{sev:8s} {code:35s} x{n}")

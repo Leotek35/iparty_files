@@ -17,6 +17,8 @@ from __future__ import annotations
 from ..core.exceptions import NoValidPlanError
 from ..core.logging import get_logger
 from ..llm.client import LLMClient
+from ..core.config import settings
+from ..orchestration.jepa_bridge import JepaAdvisor
 from ..orchestration.ttl_engine import TTLOrchestrator
 from ..pricing.catalog import Catalog, unrecognized_restrictions
 from .feasibility import minimum_feasible_budget
@@ -57,7 +59,11 @@ class TTLPartyPlanner:
             )
 
         # ---- 2. Verified best-of-N with repair feedback ----
-        last_feedback: str | None = None
+        advisor = (JepaAdvisor(request, self.catalog)
+                   if settings.JEPA_BRIDGE_ENABLED else None)
+        # JEPA bridge: predicted risk areas become *preemptive* instructions —
+        # the first generation already knows what usually goes wrong here.
+        last_feedback: str | None = advisor.prehint() if advisor else None
 
         async def produce(i: int):
             nonlocal last_feedback
@@ -76,7 +82,8 @@ class TTLPartyPlanner:
                     "; ".join(f"[{v.code}] {v.message}" for v in errs)
             return report.passed, report.score, report
 
-        candidate, telemetry = await self.orchestrator.run_verified(produce, verify)
+        candidate, telemetry = await self.orchestrator.run_verified(
+            produce, verify, advisor=advisor)
         report = candidate.detail
 
         if not candidate.passed:

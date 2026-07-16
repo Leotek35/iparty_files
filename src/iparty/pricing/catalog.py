@@ -175,6 +175,13 @@ _RESTRICTION_TO_ALLERGENS = {
     "dairy": {"milk"}, "milk": {"milk"}, "lactose": {"milk"},
     "egg": {"egg"}, "soy": {"soy"}, "fish": {"fish"}, "shellfish": {"shellfish"},
     "sesame": {"sesame"},
+    # Common non-English / colloquial aliases — a safety parser must meet
+    # people in their own words. (Substring-matched, lowercase.)
+    "laktose": {"milk"}, "lattosio": {"milk"}, "sin lacteos": {"milk"},
+    "glutine": {"wheat"}, "glúten": {"wheat"}, "麩質": {"wheat"}, "グルテン": {"wheat"},
+    "arachide": {"peanut"}, "maní": {"peanut"}, "erdnuss": {"peanut"},
+    "cacahuete": {"peanut"}, "🥜": {"peanut", "tree_nut"},
+    "sesam": {"sesame"}, "sésamo": {"sesame"},
 }
 
 
@@ -198,13 +205,15 @@ def requires_vegetarian(restrictions: str) -> bool:
     satisfied by a vegetarian menu too (fish optional, never required)."""
     text = (restrictions or "").lower()
     return any(k in text for k in
-               ("vegetarian", "vegan", "kosher", "halal", "jain", "pescatarian"))
+               ("vegetarian", "vegan", "kosher", "halal", "jain", "pescatarian",
+                "végétalien", "vegetalien", "халяль", "حلال", "코셔", "כשר"))
 
 
 # Every keyword the dietary parser understands and acts on.
 _KNOWN_DIET_KEYWORDS = tuple(_RESTRICTION_TO_ALLERGENS) + (
     "vegan", "vegetarian", "kosher", "halal", "jain", "pescatarian",
-    "allerg", "intoleran", "free", "none", "no ",
+    "végétalien", "vegetalien", "халяль", "حلال", "코셔", "כשר",
+    "allerg", "intoleran", "free", "frei", "none", "no ",
 )
 
 

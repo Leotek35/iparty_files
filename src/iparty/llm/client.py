@@ -103,10 +103,22 @@ class MockClient:
         if not flawed:
             return _enrich_within_budget(base, request, catalog)
 
-        # Flawed candidate: blow the budget with an expensive add-on (verifier rejects).
+        # Flawed candidate: blow the budget with an expensive add-on. Quantity is
+        # scaled so the cap is exceeded for ANY budget — a flaw that slips
+        # through verification is no flaw at all.
         expensive = max(catalog.by_category("activities"), key=lambda i: i.price_for(1, request.guest_count))
+        base_total = 0.0
+        v = catalog.get(base.venue_sku)
+        if v:
+            base_total += v.price_for(1, request.guest_count)
+        for sel in list(base.food) + list(base.supplies) + list(base.activities):
+            it = catalog.get(sel.sku)
+            if it:
+                base_total += it.price_for(sel.quantity, request.guest_count)
+        unit = max(expensive.price_for(1, request.guest_count), 1.0)
+        qty = min(500, max(2, int((request.budget - base_total) / unit) + 2))
         return base.model_copy(update={
-            "activities": base.activities + [Selection(sku=expensive.sku, quantity=2)],
+            "activities": base.activities + [Selection(sku=expensive.sku, quantity=qty)],
         })
 
 

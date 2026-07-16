@@ -16,6 +16,7 @@ from ..core.exceptions import (
     RetryExhaustedError,
 )
 from ..llm.client import build_client
+from ..orchestration.jepa_bridge import shared_predictor
 from ..orchestration.ttl_engine import TTLOrchestrator
 from ..pricing.catalog import StaticCatalog
 from ..planning.models import PartyRequest, PlanResult
@@ -55,4 +56,5 @@ async def metrics() -> dict:
         "watchdog": _orchestrator.watchdog.metrics(),
         "backend": _client.name,
         "catalog_items": len(_catalog.all()),
+        "jepa_predictor": shared_predictor.metrics(),
     }

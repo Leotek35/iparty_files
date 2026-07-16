@@ -248,6 +248,7 @@ class TTLOrchestrator:
         n: int | None = None,
         consecutive_fail_limit: int | None = None,
         deadline_seconds: float | None = None,
+        advisor: object | None = None,
     ) -> "tuple[Candidate[T], Telemetry]":
         n = n or settings.PLAN_CANDIDATES_N
         consecutive_fail_limit = consecutive_fail_limit or settings.CB_CONSECUTIVE_FAILS
@@ -255,7 +256,15 @@ class TTLOrchestrator:
         tel = Telemetry()
         start = time.monotonic()
         best: Candidate[T] | None = None
+        best_pass: Candidate[T] | None = None
         consecutive = 0
+
+        # JEPA bridge: predicted difficulty sets the candidate budget BEFORE
+        # any generation is spent (anticipatory, not reactive).
+        if advisor is not None:
+            difficulty = advisor.difficulty()
+            n = advisor.candidate_budget(n)
+            tel.event(f"jepa: predicted difficulty {difficulty:.2f} -> candidate budget {n}")
 
         for i in range(n):
             if time.monotonic() - start >= deadline:
@@ -290,18 +299,39 @@ class TTLOrchestrator:
 
             tel.candidates_generated += 1
             tel.llm_calls += 1
+
+            predicted_energy: float | None = None
+            if advisor is not None:
+                predicted_energy = advisor.assess(value)
+
             passed, score, detail = verify(value)
             cand = Candidate(value=value, passed=passed, score=score, detail=detail)
             if best is None or score > best.score:
                 best = cand
 
+            if advisor is not None:
+                advisor.observe(value, detail)
+                if predicted_energy is not None:
+                    verdict = "PASS" if passed else "FAIL"
+                    tel.event(f"jepa: candidate {i} predicted energy "
+                              f"{predicted_energy:.2f}, verifier says {verdict}")
+
             if passed:
                 tel.candidates_verified_pass += 1
                 tel.event(f"candidate {i}: verified PASS (score {score:.2f})")
+                if best_pass is None or score > best_pass.score:
+                    best_pass = cand
+                # Energy-based continuation: sample past the first pass only
+                # when the advisor predicts meaningful expected improvement.
+                if advisor is not None and advisor.should_continue(best_pass.score, i + 1, n):
+                    tel.event(f"jepa: pass score {score:.2f} mediocre on a hard "
+                              f"request — sampling for a better candidate")
+                    consecutive = 0
+                    continue
                 tel.watchdog_retries = self.watchdog.retries_used
                 tel.circuit_state = self.breaker.state.value
                 tel.elapsed_seconds = time.monotonic() - start
-                return cand, tel
+                return best_pass, tel
 
             tel.event(f"candidate {i}: verify FAIL (score {score:.2f})")
             consecutive += 1
@@ -313,6 +343,8 @@ class TTLOrchestrator:
         tel.watchdog_retries = self.watchdog.retries_used
         tel.circuit_state = self.breaker.state.value
         tel.elapsed_seconds = time.monotonic() - start
+        if best_pass is not None:
+            return best_pass, tel
         if best is None:
             raise RetryExhaustedError("no candidate could be produced")
         return best, tel

@@ -1,6 +1,6 @@
 [project]
 name = "iparty"
-version = "1.1.0"
+version = "1.2.0"
 description = "Verifier-gated birthday-party planning on the TTL reliability engine"
 readme = "README.md"
 requires-python = ">=3.10"
