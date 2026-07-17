@@ -199,7 +199,12 @@ class JepaAdvisor:
         return blend * learned + (1 - blend) * heuristic
 
     def candidate_budget(self, n_max: int) -> int:
-        return max(1, min(n_max, 1 + round(self.difficulty() * (n_max - 1))))
+        # Floor at 2 (when available) so a first-candidate failure always has a
+        # verifier-guided repair round; without it, adaptive budgeting could
+        # refuse a request that a single repair would have satisfied. Returning
+        # on the first pass keeps this free when candidate 0 already passes.
+        predicted = 1 + round(self.difficulty() * (n_max - 1))
+        return max(min(2, n_max), min(n_max, predicted))
 
     # -- 2. preemptive repair hint ------------------------------------------
     def prehint(self) -> str | None:

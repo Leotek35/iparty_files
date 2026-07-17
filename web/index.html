@@ -203,6 +203,30 @@ button:focus-visible{box-shadow:0 0 0 3.5px rgba(0,113,227,.35)}
 .hood-cell .v{font-size:18px; font-weight:700}
 .hood-cell .k{font-size:11px; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-top:2px}
 
+/* ============ JEPA — anticipatory intelligence panel ============ */
+.jepa{margin:2px 4px 14px; padding:16px; border-radius:var(--r-ctl);
+  background:linear-gradient(180deg,#F6F4FF,#FFFFFF); border:0.5px solid #E4DEFB}
+.jepa-head{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700;
+  letter-spacing:-.01em; color:#4B2FBF}
+.jepa-head .badge{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  color:#5B3FD6; background:#EDE7FF; border-radius:999px; padding:2px 8px}
+.jepa-sub{font-size:12px; color:var(--ink-2); margin:4px 0 12px}
+.jepa-metrics{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px}
+.jepa-metrics .v{font-size:18px; font-weight:700; color:#3A2A9E}
+.jepa-metrics .k{font-size:10.5px; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-top:2px}
+.diffbar{height:6px; border-radius:999px; background:#E7E2F7; overflow:hidden; margin-top:8px}
+.diffbar > i{display:block; height:100%; border-radius:999px;
+  background:linear-gradient(90deg,#7C6BE0,#4B2FBF)}
+.energy-row{display:flex; align-items:center; gap:8px; font-size:12px; padding:5px 0;
+  border-top:0.5px solid #ECE7FB}
+.energy-row .cand{width:64px; color:var(--ink-2)}
+.energy-track{flex:1; height:6px; border-radius:999px; background:#E7E2F7; overflow:hidden}
+.energy-track > i{display:block; height:100%}
+.energy-row .verdict{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  padding:2px 7px; border-radius:999px}
+.verdict.pass{color:var(--verify); background:var(--verify-soft)}
+.verdict.fail{color:var(--danger); background:var(--danger-soft)}
+
 .empty{padding:64px 28px; text-align:center; color:var(--ink-2); font-size:15px}
 footer{max-width:640px; margin:0 auto; padding:0 24px 56px; text-align:center; font-size:13px; color:var(--ink-2)}
 footer .mono{font-size:12px}
@@ -272,6 +296,7 @@ footer .mono{font-size:12px}
 
   <details class="hood" id="hood" hidden>
     <summary>Under the hood</summary>
+    <div id="jepa-panel"></div>
     <div class="hood-grid" id="telemetry"></div>
   </details>
 </main>
@@ -282,6 +307,14 @@ footer .mono{font-size:12px}
 
 <script>
 const $ = (id) => document.getElementById(id);
+// XSS guard: all server-echoed, user-controlled strings pass through esc()
+// before entering innerHTML. Names, themes, notes and special requests are
+// user input; the catalog fields are trusted but escaped anyway (defense in depth).
+function esc(x){
+  return String(x == null ? "" : x)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+}
 
 // ---- Adoption instrumentation (privacy-safe: no names or free text sent) ----
 const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9-]/g,"-");
@@ -372,13 +405,13 @@ function renderPass(data, req){
   const p = data.plan;
   const v = data.verification;
   const items = p.line_items.map(li=>`
-    <div class="line"><span class="what">${li.description}${li.quantity>1?` ×${li.quantity}`:""}</span><span class="dots"></span><span class="amt mono">${fmt(li.subtotal)}</span></div>`).join("");
-  const sched = p.schedule.map(s=>`<div class="slot"><span class="t mono">${s.start}–${s.end}</span><span>${s.activity}</span></div>`).join("");
-  const acts = p.activities.map(a=>`<span class="tag">${a}</span>`).join("");
-  const supplies = p.supplies.map(a=>`<span class="tag">${a}</span>`).join("");
+    <div class="line"><span class="what">${esc(li.description)}${li.quantity>1?` ×${li.quantity}`:""}</span><span class="dots"></span><span class="amt mono">${fmt(li.subtotal)}</span></div>`).join("");
+  const sched = p.schedule.map(s=>`<div class="slot"><span class="t mono">${esc(s.start)}–${esc(s.end)}</span><span>${esc(s.activity)}</span></div>`).join("");
+  const acts = p.activities.map(a=>`<span class="tag">${esc(a)}</span>`).join("");
+  const supplies = p.supplies.map(a=>`<span class="tag">${esc(a)}</span>`).join("");
   const diet = req.dietary_restrictions.trim();
   const menu = p.menu.map(m=>`
-    <div class="menu-line"><span>${m.name}</span>${diet?`<span class="safe-chip">checked</span>`:`<span class="mono" style="font-size:13px;color:var(--ink-2)">serves ${m.servings}</span>`}</div>`).join("");
+    <div class="menu-line"><span>${esc(m.name)}</span>${diet?`<span class="safe-chip">checked</span>`:`<span class="mono" style="font-size:13px;color:var(--ink-2)">serves ${m.servings}</span>`}</div>`).join("");
   const pct = Math.min(100,(p.total_cost/req.budget)*100).toFixed(1);
 
   $("result").innerHTML = `
@@ -393,8 +426,8 @@ function renderPass(data, req){
       </div>
       <div class="pass-status">${v.checks_passed} of ${v.checks_total} checks passed</div>
       <div><span class="seal">VERIFIED</span></div>
-      <div class="pass-title">${p.theme}</div>
-      <div class="pass-meta">${req.honoree_name} turns ${req.honoree_age} · ${req.guest_count} guests · ${p.venue}</div>
+      <div class="pass-title">${esc(p.theme)}</div>
+      <div class="pass-meta">${esc(req.honoree_name)} turns ${esc(req.honoree_age)} · ${esc(req.guest_count)} guests · ${esc(p.venue)}</div>
     </div>
     <div class="perf"></div>
     <div class="pass-body">
@@ -409,8 +442,8 @@ function renderPass(data, req){
       <div class="sect"><h3>Run of show</h3>${sched}</div>
       <div class="sect"><h3>Activities</h3><div class="tags">${acts}</div></div>
       <div class="sect"><h3>Supplies</h3><div class="tags">${supplies}</div></div>
-      ${(v.violations||[]).filter(x=>x.severity==="warning").map(w=>`<div class="note" style="border-left:3px solid #d97706;padding-left:10px">${w.message}</div>`).join("")}
-      ${p.notes?`<div class="note">${p.notes}</div>`:""}
+      ${(v.violations||[]).filter(x=>x.severity==="warning").map(w=>`<div class="note" style="border-left:3px solid #d97706;padding-left:10px">${esc(w.message)}</div>`).join("")}
+      ${p.notes?`<div class="note">${esc(p.notes)}</div>`:""}
 
       <div class="actions">
         <button class="cta" id="book-btn">Help me book this party</button>
@@ -444,7 +477,7 @@ function renderPass(data, req){
 
 function renderInfeasible(detail, req){
   const min = detail.minimum_feasible_budget;
-  const binding = (detail.violations||[]).map(v=>`<div>${v.message}</div>`).join("");
+  const binding = (detail.violations||[]).map(v=>`<div>${esc(v.message)}</div>`).join("");
   $("result").innerHTML = `
   <article class="card refusal">
     <div class="halt">
@@ -464,8 +497,41 @@ function renderUnavailable(){
   $("result").innerHTML = `<div class="card empty">The planner is catching its breath.<br>Give it a moment, then try again.</div>`;
 }
 
+function renderJepa(j){
+  const host = $("jepa-panel");
+  if(!j || !j.enabled){ host.innerHTML = ""; return; }
+  const pct = (x)=> x==null ? "—" : Math.round(x*100)+"%";
+  const diff = j.difficulty==null ? 0 : j.difficulty;
+  const cal = j.calibration_accuracy;
+  const rows = (j.energy_trace||[]).map(e=>{
+    const p = Math.round(e.predicted_energy*100);
+    const col = e.verifier==="PASS" ? "var(--verify)" : "var(--danger)";
+    return `<div class="energy-row">
+      <span class="cand mono">cand ${e.candidate}</span>
+      <span class="energy-track"><i style="width:${p}%; background:${col}"></i></span>
+      <span class="mono" style="width:38px; text-align:right; color:var(--ink-2)">${p}%</span>
+      <span class="verdict ${e.verifier==='PASS'?'pass':'fail'}">${e.verifier}</span>
+    </div>`;
+  }).join("");
+  host.innerHTML = `
+  <div class="jepa">
+    <div class="jepa-head">Anticipatory intelligence <span class="badge">JEPA · TTL</span></div>
+    <div class="jepa-sub">The verifier is treated as an energy function; a model that learns this
+      workload predicts risk <em>before</em> planning, then checks its own predictions.</div>
+    <div class="jepa-metrics">
+      <div><div class="v mono">${pct(diff)}</div><div class="k">predicted difficulty</div>
+        <div class="diffbar"><i style="width:${Math.round(diff*100)}%"></i></div></div>
+      <div><div class="v mono">${j.candidate_budget ?? "—"}</div><div class="k">candidate budget</div></div>
+      <div><div class="v mono">${cal==null?"warming up":pct(cal)}</div><div class="k">self-calibration</div></div>
+    </div>
+    ${rows ? `<div style="font-size:11px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">predicted energy vs. verifier verdict</div>${rows}` : ""}
+    <div class="jepa-sub" style="margin:10px 0 0">Learned from ${j.examples_seen ?? 0} verified plans so far.</div>
+  </div>`;
+}
+
 function renderTelemetry(t){
   $("hood").hidden = false;
+  renderJepa(t.jepa);
   const cell=(v,k)=>`<div class="hood-cell"><div class="v mono">${v}</div><div class="k">${k}</div></div>`;
   $("telemetry").innerHTML =
     cell(t.candidates_generated,"candidates") +

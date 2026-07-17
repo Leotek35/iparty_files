@@ -198,6 +198,13 @@ class Telemetry:
     llm_calls: int = 0
     elapsed_seconds: float = 0.0
     pattern_log: list[str] = field(default_factory=list)
+    # JEPA-TTL bridge (None when the bridge is disabled)
+    jepa_enabled: bool = False
+    jepa_difficulty: float | None = None
+    jepa_candidate_budget: int | None = None
+    jepa_energy_trace: list[dict] = field(default_factory=list)
+    jepa_calibration: float | None = None
+    jepa_examples_seen: int | None = None
 
     def event(self, msg: str) -> None:
         self.pattern_log.append(msg)
@@ -212,6 +219,14 @@ class Telemetry:
             "llm_calls": self.llm_calls,
             "elapsed_seconds": round(self.elapsed_seconds, 3),
             "pattern_log": self.pattern_log,
+            "jepa": {
+                "enabled": self.jepa_enabled,
+                "difficulty": self.jepa_difficulty,
+                "candidate_budget": self.jepa_candidate_budget,
+                "energy_trace": self.jepa_energy_trace,
+                "calibration_accuracy": self.jepa_calibration,
+                "examples_seen": self.jepa_examples_seen,
+            },
         }
 
 
@@ -264,6 +279,9 @@ class TTLOrchestrator:
         if advisor is not None:
             difficulty = advisor.difficulty()
             n = advisor.candidate_budget(n)
+            tel.jepa_enabled = True
+            tel.jepa_difficulty = round(difficulty, 3)
+            tel.jepa_candidate_budget = n
             tel.event(f"jepa: predicted difficulty {difficulty:.2f} -> candidate budget {n}")
 
         for i in range(n):
@@ -313,6 +331,12 @@ class TTLOrchestrator:
                 advisor.observe(value, detail)
                 if predicted_energy is not None:
                     verdict = "PASS" if passed else "FAIL"
+                    tel.jepa_energy_trace.append({
+                        "candidate": i,
+                        "predicted_energy": round(predicted_energy, 3),
+                        "verifier": verdict,
+                        "score": round(score, 3),
+                    })
                     tel.event(f"jepa: candidate {i} predicted energy "
                               f"{predicted_energy:.2f}, verifier says {verdict}")
 
@@ -321,8 +345,6 @@ class TTLOrchestrator:
                 tel.event(f"candidate {i}: verified PASS (score {score:.2f})")
                 if best_pass is None or score > best_pass.score:
                     best_pass = cand
-                # Energy-based continuation: sample past the first pass only
-                # when the advisor predicts meaningful expected improvement.
                 if advisor is not None and advisor.should_continue(best_pass.score, i + 1, n):
                     tel.event(f"jepa: pass score {score:.2f} mediocre on a hard "
                               f"request — sampling for a better candidate")
@@ -331,6 +353,7 @@ class TTLOrchestrator:
                 tel.watchdog_retries = self.watchdog.retries_used
                 tel.circuit_state = self.breaker.state.value
                 tel.elapsed_seconds = time.monotonic() - start
+                _stamp_jepa(tel, advisor)
                 return best_pass, tel
 
             tel.event(f"candidate {i}: verify FAIL (score {score:.2f})")
@@ -343,8 +366,22 @@ class TTLOrchestrator:
         tel.watchdog_retries = self.watchdog.retries_used
         tel.circuit_state = self.breaker.state.value
         tel.elapsed_seconds = time.monotonic() - start
+        _stamp_jepa(tel, advisor)
         if best_pass is not None:
             return best_pass, tel
         if best is None:
             raise RetryExhaustedError("no candidate could be produced")
         return best, tel
+
+
+def _stamp_jepa(tel: "Telemetry", advisor: object | None) -> None:
+    """Copy the shared predictor's live self-assessment onto the telemetry so
+    the UI can show how well the bridge is calibrated to this workload."""
+    if advisor is None:
+        return
+    predictor = getattr(advisor, "predictor", None)
+    if predictor is None:
+        return
+    m = predictor.metrics()
+    tel.jepa_calibration = m.get("calibration_accuracy")
+    tel.jepa_examples_seen = m.get("examples_seen")

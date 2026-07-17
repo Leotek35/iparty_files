@@ -152,3 +152,27 @@ def test_big_budget_never_ships_a_thin_flawed_plan():
     plan = r.json()["plan"]
     assert plan["total_cost"] <= 12000.0
     assert len(plan["activities"]) >= 2
+
+
+def test_candidate_budget_floors_at_two_for_repair_room():
+    """Adaptive budget must never drop below 2 (when N allows), so a failed
+    first candidate always gets a verifier-guided repair round."""
+    from iparty.orchestration.jepa_bridge import OutcomePredictor
+    easy = JepaAdvisor(make_request(budget=100000.0, guest_count=8), CAT,
+                       predictor=OutcomePredictor())
+    assert easy.candidate_budget(4) >= 2
+    assert easy.candidate_budget(1) == 1   # respect a hard N=1 ceiling
+
+
+def test_telemetry_exposes_jepa_block():
+    client = TestClient(app)
+    r = client.post("/api/v1/plan", json={
+        "honoree_name": "Tel", "honoree_age": 7, "party_date": FUTURE.isoformat(),
+        "guest_count": 14, "budget": 900.0, "theme": "Space",
+        "dietary_restrictions": "vegan", "location_type": "home"})
+    j = r.json()["telemetry"]["jepa"]
+    assert j["enabled"] is True
+    assert 0.0 <= j["difficulty"] <= 1.0
+    assert j["candidate_budget"] >= 1
+    assert isinstance(j["energy_trace"], list) and j["energy_trace"]
+    assert j["energy_trace"][0]["verifier"] in ("PASS", "FAIL")

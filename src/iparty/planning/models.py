@@ -2,6 +2,7 @@
 them, so the model can never invent a price."""
 from __future__ import annotations
 
+import math
 from datetime import date
 from typing import Literal
 
@@ -26,6 +27,15 @@ class PartyRequest(BaseModel):
     def not_in_past(cls, v: date) -> date:
         if v < date.today():
             raise ValueError("party_date cannot be in the past")
+        return v
+
+    @field_validator("budget", "duration_hours")
+    @classmethod
+    def finite_number(cls, v: float) -> float:
+        # Reject NaN/Infinity: they bypass budget feasibility (inf affords
+        # anything) and crash naive JSON error serialization (NaN).
+        if not math.isfinite(v):
+            raise ValueError("must be a finite number")
         return v
 
 

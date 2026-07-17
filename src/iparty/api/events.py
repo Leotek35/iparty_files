@@ -36,6 +36,13 @@ _write_lock = asyncio.Lock()
 MAX_EVENTS_PER_SESSION = 300
 _session_counts: dict[str, int] = {}
 
+# Global guards: session_id is client-supplied, so a per-session cap alone is
+# bypassed by rotating IDs. Bound total intake per process AND the on-disk file
+# so an unauthenticated flood cannot fill the disk.
+MAX_EVENTS_GLOBAL = 2_000_000
+MAX_EVENTS_FILE_BYTES = 50 * 1024 * 1024   # 50 MB
+_global_count = 0
+
 EventName = Literal[
     "page_view",
     "form_started",
@@ -82,17 +89,26 @@ class Event(BaseModel):
 
 @router.post("/events", status_code=204)
 async def record_event(event: Event) -> None:
+    global _global_count
     count = _session_counts.get(event.session_id, 0)
     if count >= MAX_EVENTS_PER_SESSION:
         raise HTTPException(status_code=429, detail="event limit reached for this session")
+    if _global_count >= MAX_EVENTS_GLOBAL:
+        raise HTTPException(status_code=429, detail="global event intake limit reached")
+    path = _events_path()
+    try:
+        if path.exists() and path.stat().st_size >= MAX_EVENTS_FILE_BYTES:
+            raise HTTPException(status_code=429, detail="event log is full")
+    except OSError:
+        pass
     _session_counts[event.session_id] = count + 1
+    _global_count += 1
     if len(_session_counts) > 50_000:   # bound the guard's own memory
         _session_counts.clear()
 
     record = {"ts": round(time.time(), 3), "session_id": event.session_id,
               "event": event.event, "meta": event.meta}
     line = json.dumps(record, separators=(",", ":")) + "\n"
-    path = _events_path()
     async with _write_lock:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as f:
