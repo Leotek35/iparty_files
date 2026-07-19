@@ -5,230 +5,254 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>iParty — verified party planning</title>
 <style>
-/* ============ Tokens (Apple-semantic) ============ */
+/* ============================ Tokens ============================ */
 :root{
-  --canvas:#F5F5F7; --surface:#FFFFFF; --ink:#1D1D1F; --ink-2:#6E6E73;
-  --hairline:#D2D2D7; --fill:#E8E8ED;
-  --verify:#1D9A50; --verify-soft:#E4F5EB;
-  --accent:#E9002E; --accent-press:#D00029;
-  --danger:#D70015; --danger-soft:#FDECEE;
-  --r-card:28px; --r-ctl:14px;
-  --shadow-card:0 2px 8px rgba(0,0,0,.04), 0 24px 60px -24px rgba(0,0,0,.14);
-  --ease-spring:cubic-bezier(.34,1.4,.5,1);
+  --canvas:#F4F4F7; --canvas-2:#ECECF1; --surface:#FFFFFF; --surface-2:#FBFBFD;
+  --ink:#111114; --ink-2:#6A6A73; --ink-3:#9A9AA3;
+  --hairline:#E4E4EA; --hairline-2:#EDEDF2; --fill:#F0F0F5;
+  --verify:#12965A; --verify-2:#0E7C4A; --verify-soft:#E4F6EC;
+  --accent:#F5215B; --accent-2:#FF4D7D; --accent-press:#D5054A;
+  --danger:#DE1135; --danger-soft:#FDECEE;
+  --amber:#C77712;
+  --violet:#5A3FE0; --violet-2:#7C67EA; --violet-ink:#3A2A9E; --violet-soft:#EFEBFE; --violet-line:#E1DAFB;
+  --r-xl:30px; --r-card:22px; --r-ctl:14px; --r-pill:999px;
+  --sh-1:0 1px 2px rgba(17,17,20,.04), 0 1px 3px rgba(17,17,20,.03);
+  --sh-2:0 2px 6px rgba(17,17,20,.05), 0 18px 40px -22px rgba(17,17,20,.16);
+  --sh-3:0 4px 12px rgba(17,17,20,.06), 0 40px 80px -32px rgba(17,17,20,.24);
+  --sh-accent:0 10px 30px -10px rgba(245,33,91,.5);
+  --ease:cubic-bezier(.22,.61,.36,1); --spring:cubic-bezier(.34,1.42,.5,1);
 }
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box; margin:0; padding:0}
 html{scroll-behavior:smooth}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
-  background:var(--canvas); color:var(--ink);
-  font-size:17px; line-height:1.47; letter-spacing:-.012em;
+  color:var(--ink); font-size:17px; line-height:1.5; letter-spacing:-.011em;
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  background:
+    radial-gradient(1100px 520px at 50% -8%, #FFFFFF 0%, rgba(255,255,255,0) 60%),
+    radial-gradient(760px 420px at 88% 4%, rgba(245,33,91,.06) 0%, rgba(245,33,91,0) 55%),
+    radial-gradient(720px 460px at 8% 8%, rgba(90,63,224,.06) 0%, rgba(90,63,224,0) 55%),
+    var(--canvas);
+  min-height:100vh;
 }
-.mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace; letter-spacing:0}
+.mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace; letter-spacing:0; font-variant-numeric:tabular-nums}
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
 
-/* ============ Liquid-glass header (the one glass moment) ============ */
+/* ============================ Glass nav ============================ */
 .glassbar{
-  position:sticky; top:12px; z-index:50; margin:12px auto 0; width:min(680px,calc(100% - 32px));
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 20px; border-radius:999px;
-  background:rgba(255,255,255,.64);
-  -webkit-backdrop-filter:saturate(180%) blur(20px); backdrop-filter:saturate(180%) blur(20px);
-  border:0.5px solid rgba(0,0,0,.08);
-  box-shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.10);
+  position:sticky; top:12px; z-index:50; margin:12px auto 0; width:min(720px,calc(100% - 32px));
+  display:flex; align-items:center; justify-content:space-between; padding:11px 10px 11px 20px;
+  border-radius:var(--r-pill); background:rgba(255,255,255,.7);
+  -webkit-backdrop-filter:saturate(180%) blur(22px); backdrop-filter:saturate(180%) blur(22px);
+  border:.5px solid rgba(17,17,20,.08);
+  box-shadow:0 1px 2px rgba(17,17,20,.05), 0 12px 30px -16px rgba(17,17,20,.16);
 }
-.wordmark{font-weight:700; font-size:17px; letter-spacing:-.02em}
-.wordmark .dot{color:#FF375F}
-.glassbar .tagline{font-size:13px; color:var(--ink-2)}
+.wordmark{font-weight:700; font-size:18px; letter-spacing:-.02em; display:flex; align-items:center; gap:2px}
+.wordmark .dot{color:var(--accent)}
+.nav-pill{font-size:12.5px; font-weight:600; color:var(--verify-2); background:var(--verify-soft);
+  padding:6px 13px; border-radius:var(--r-pill); display:inline-flex; align-items:center; gap:6px}
+.nav-pill svg{width:12px; height:12px}
 
-/* ============ Hero ============ */
-.hero{max-width:680px; margin:0 auto; padding:72px 24px 40px; text-align:center}
+/* ============================ Hero ============================ */
+.hero{max-width:720px; margin:0 auto; padding:76px 24px 40px; text-align:center}
 .hero h1{
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
-  font-size:clamp(34px,6vw,56px); font-weight:700; letter-spacing:-.025em; line-height:1.08;
+  font-size:clamp(38px,6.6vw,62px); font-weight:700; letter-spacing:-.028em; line-height:1.05;
 }
-.hero .sub{margin:18px auto 0; max-width:52ch; font-size:19px; color:var(--ink-2); letter-spacing:-.014em}
-.hero .assurances{
-  display:flex; gap:24px; justify-content:center; flex-wrap:wrap; margin-top:26px;
-  font-size:13px; color:var(--ink-2);
+.hero h1 .grad{
+  background:linear-gradient(120deg,var(--accent),var(--violet) 90%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
 }
-.hero .assurances span{display:inline-flex; align-items:center; gap:6px}
-.hero .assurances svg{width:14px; height:14px; color:var(--verify)}
+.hero .sub{margin:20px auto 0; max-width:54ch; font-size:19px; color:var(--ink-2); letter-spacing:-.014em}
+.assurances{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:28px}
+.assurances span{
+  display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:550; color:var(--ink-2);
+  background:var(--surface); border:.5px solid var(--hairline); padding:8px 14px; border-radius:var(--r-pill);
+  box-shadow:var(--sh-1);
+}
+.assurances svg{width:14px; height:14px; color:var(--verify)}
 
-/* ============ Layout ============ */
-.stage{max-width:640px; margin:0 auto; padding:0 24px 96px; display:grid; gap:24px}
-.card{
-  background:var(--surface); border-radius:var(--r-card); box-shadow:var(--shadow-card);
-  border:0.5px solid rgba(0,0,0,.05);
-}
+/* ============================ Layout ============================ */
+.stage{max-width:660px; margin:0 auto; padding:0 24px 100px; display:grid; gap:22px}
+.card{background:var(--surface); border-radius:var(--r-card); box-shadow:var(--sh-2); border:.5px solid rgba(17,17,20,.06)}
 
-/* ============ Form ============ */
-form{padding:28px; display:grid; gap:18px}
-.form-title{font-size:22px; font-weight:600; letter-spacing:-.02em}
-.form-sub{font-size:15px; color:var(--ink-2); margin-top:2px}
+/* ============================ Form ============================ */
+form{padding:30px; display:grid; gap:20px}
+.form-title{font-size:23px; font-weight:650; letter-spacing:-.02em}
+.form-sub{font-size:15px; color:var(--ink-2); margin-top:3px}
 .row{display:grid; grid-template-columns:1fr 1fr; gap:14px}
 @media(max-width:480px){.row{grid-template-columns:1fr}}
-label{display:block; font-size:13px; font-weight:600; color:var(--ink-2); margin-bottom:7px}
+label{display:block; font-size:12.5px; font-weight:650; color:var(--ink-2); margin-bottom:8px; letter-spacing:.005em}
+label .opt{font-weight:400; color:var(--ink-3)}
 input,select{
-  width:100%; min-height:44px; padding:11px 14px; font:inherit; font-size:17px; color:var(--ink);
-  background:var(--canvas); border:0.5px solid transparent; border-radius:var(--r-ctl);
-  transition:background .15s, box-shadow .15s;
-  -webkit-appearance:none; appearance:none;
+  width:100%; height:46px; padding:0 14px; font-size:16px; font-family:inherit; color:var(--ink);
+  background:var(--surface-2); border:1px solid var(--hairline); border-radius:var(--r-ctl);
+  transition:border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); appearance:none;
 }
-input:focus,select:focus{outline:none; background:var(--surface);
-  box-shadow:0 0 0 3.5px rgba(0,113,227,.28), inset 0 0 0 1px #0071E3}
-:focus-visible{outline:none}
-button:focus-visible{box-shadow:0 0 0 3.5px rgba(0,113,227,.35)}
+input::placeholder{color:var(--ink-3)}
+input:hover,select:hover{border-color:#D2D2DA}
+input:focus,select:focus{outline:none; background:var(--surface); border-color:var(--accent);
+  box-shadow:0 0 0 4px rgba(245,33,91,.12)}
+select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236A6A73' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat; background-position:right 14px center; padding-right:38px}
+
+/* segmented control (location) */
+.seg{display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:4px; background:var(--fill);
+  border-radius:var(--r-ctl); border:1px solid var(--hairline)}
+.seg button{
+  height:38px; border:0; background:transparent; font-family:inherit; font-size:13.5px; font-weight:600;
+  color:var(--ink-2); border-radius:10px; cursor:pointer; transition:all .18s var(--ease);
+}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--surface); color:var(--ink); box-shadow:var(--sh-1)}
+@media(max-width:480px){.seg{grid-template-columns:repeat(2,1fr)}}
+
 .cta{
-  min-height:50px; width:100%; border:none; border-radius:var(--r-ctl);
-  background:var(--accent); color:#fff; font:inherit; font-size:17px; font-weight:600;
-  cursor:pointer; transition:transform .12s var(--ease-spring), background .15s;
+  height:54px; border:0; border-radius:var(--r-ctl); font-family:inherit; font-size:17px; font-weight:650;
+  color:#fff; letter-spacing:-.01em; cursor:pointer; margin-top:2px;
+  background:linear-gradient(180deg,var(--accent-2),var(--accent)); box-shadow:var(--sh-accent);
+  transition:transform .16s var(--spring), box-shadow .2s var(--ease), filter .18s var(--ease);
 }
-.cta:hover{background:var(--accent-press)}
+.cta:hover{filter:saturate(1.06) brightness(1.03)}
 .cta:active{transform:scale(.98)}
-.cta:disabled{opacity:.5; cursor:default; transform:none}
-.btn-quiet{
-  min-height:44px; border:none; border-radius:var(--r-ctl); background:var(--fill);
-  color:var(--ink); font:inherit; font-size:15px; font-weight:600; cursor:pointer;
-  transition:transform .12s var(--ease-spring), background .15s;
-}
-.btn-quiet:hover{background:#DFDFE4}
-.btn-quiet:active{transform:scale(.98)}
+.cta:disabled{filter:grayscale(.2) brightness(.98); cursor:default; box-shadow:none}
 
-/* ============ The Verified Pass (signature) ============ */
-.pass{overflow:hidden}
-.pass-head{padding:30px 28px 24px; text-align:center; position:relative}
-.verify-stage{height:96px; display:grid; place-items:center; margin-bottom:6px}
-.ring{width:72px; height:72px}
-.ring circle{fill:none; stroke:var(--hairline); stroke-width:4}
-.ring .arc{
-  stroke:var(--verify); stroke-linecap:round;
-  stroke-dasharray:213; stroke-dashoffset:213;
-  transform:rotate(-90deg); transform-origin:center;
-  animation:draw 1.1s ease forwards;
-}
-.ring .tick{
-  fill:none; stroke:var(--verify); stroke-width:5; stroke-linecap:round; stroke-linejoin:round;
-  stroke-dasharray:40; stroke-dashoffset:40; animation:tick .35s ease .95s forwards;
-}
+/* ============================ Result: verified pass ============================ */
+#result .card{overflow:hidden; animation:cardIn .5s var(--ease) both}
+@keyframes cardIn{from{opacity:0; transform:translateY(14px) scale(.99)} to{opacity:1; transform:none}}
+
+.pass-head{position:relative; padding:34px 30px 26px; text-align:center;
+  background:radial-gradient(120% 140% at 50% -10%, var(--verify-soft) 0%, rgba(228,246,236,0) 62%);
+  border-bottom:.5px solid var(--hairline-2)}
+.verify-stage{width:76px; height:76px; margin:0 auto 4px}
+.ring{width:76px; height:76px; transform:rotate(-90deg)}
+.ring circle{fill:none; stroke-width:5}
+.ring circle:first-of-type{stroke:var(--verify-soft)}
+.ring .arc{stroke:var(--verify); stroke-linecap:round; stroke-dasharray:214; stroke-dashoffset:214;
+  animation:draw .9s var(--ease) .1s forwards}
+.ring .tick{fill:none; stroke:var(--verify); stroke-width:5.5; stroke-linecap:round; stroke-linejoin:round;
+  stroke-dasharray:44; stroke-dashoffset:44; transform:rotate(90deg); transform-origin:38px 38px;
+  animation:draw .5s var(--ease) .8s forwards}
 @keyframes draw{to{stroke-dashoffset:0}}
-@keyframes tick{to{stroke-dashoffset:0}}
-.pass-status{font-size:13px; color:var(--ink-2); min-height:18px}
-.seal{
-  display:inline-flex; align-items:center; gap:7px; margin-top:10px;
-  padding:7px 16px; border-radius:999px; background:var(--verify-soft); color:var(--verify);
-  font-size:13px; font-weight:700; letter-spacing:.06em;
-  opacity:0; transform:scale(.8); animation:pop .4s var(--ease-spring) 1.15s forwards;
-}
-@keyframes pop{to{opacity:1; transform:scale(1)}}
-.pass-title{font-size:28px; font-weight:700; letter-spacing:-.022em; margin-top:14px}
-.pass-meta{font-size:15px; color:var(--ink-2); margin-top:4px}
+.pass-status{font-size:13.5px; font-weight:600; color:var(--verify-2); margin-top:6px}
+.seal{display:inline-block; margin-top:12px; font-size:11px; font-weight:750; letter-spacing:.14em;
+  color:#fff; background:linear-gradient(180deg,var(--verify),var(--verify-2)); padding:5px 13px; border-radius:var(--r-pill);
+  box-shadow:0 8px 20px -8px rgba(18,150,90,.6); opacity:0; transform:scale(.8);
+  animation:pop .5s var(--spring) 1s forwards}
+@keyframes pop{to{opacity:1; transform:none}}
+.pass-title{font-size:29px; font-weight:700; letter-spacing:-.024em; margin-top:16px}
+.pass-meta{font-size:15px; color:var(--ink-2); margin-top:5px}
 
-.perf{position:relative; height:0; border-top:2px dashed var(--hairline); margin:0 28px}
-.perf::before,.perf::after{
-  content:""; position:absolute; top:-14px; width:28px; height:28px; border-radius:50%;
-  background:var(--canvas);
-}
-.perf::before{left:-42px}
-.perf::after{right:-42px}
-
-.pass-body{padding:24px 28px 28px}
-.receipt{display:grid; gap:10px}
-.line{display:flex; align-items:baseline; gap:8px; font-size:15px}
-.line .what{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.line .dots{flex:1; border-bottom:1px dotted var(--hairline); transform:translateY(-4px)}
-.line .amt{font-size:14px; font-weight:600}
-.total{display:flex; justify-content:space-between; align-items:baseline;
-  margin-top:14px; padding-top:14px; border-top:1px solid var(--hairline)}
-.total .lbl{font-size:13px; font-weight:600; color:var(--ink-2); letter-spacing:.05em}
-.total .sum{font-size:24px; font-weight:700}
-.total .of{font-size:13px; color:var(--ink-2); font-weight:400}
-.budget-track{height:5px; border-radius:3px; background:var(--fill); margin-top:12px; overflow:hidden}
-.budget-fill{height:100%; border-radius:3px; background:var(--verify); width:0; transition:width .9s ease .3s}
+.pass-body{padding:24px 30px 30px}
+.receipt{display:grid; gap:2px; margin-bottom:6px}
+.line{display:flex; align-items:baseline; gap:10px; padding:8px 0; font-size:15px}
+.line .what{color:var(--ink)}
+.line .dots{flex:1; border-bottom:1.5px dotted var(--hairline); transform:translateY(-4px)}
+.line .amt{color:var(--ink); font-size:14.5px; font-weight:550}
+.total{display:flex; justify-content:space-between; align-items:baseline; margin-top:12px; padding-top:16px;
+  border-top:1px solid var(--hairline)}
+.total .lbl{font-size:11.5px; font-weight:700; letter-spacing:.08em; color:var(--ink-2)}
+.total .sum{font-size:26px; font-weight:750; letter-spacing:-.02em}
+.total .of{font-size:14px; color:var(--ink-2); margin-left:4px}
+.budget-track{height:8px; border-radius:var(--r-pill); background:var(--fill); overflow:hidden; margin-top:12px; position:relative}
+.budget-fill{height:100%; width:0; border-radius:var(--r-pill);
+  background:linear-gradient(90deg,var(--verify),#25B26E); transition:width 1s var(--ease) .2s}
 
 .sect{margin-top:26px}
-.sect h3{font-size:13px; font-weight:600; color:var(--ink-2); letter-spacing:.06em; text-transform:uppercase; margin-bottom:10px}
-.slot{display:grid; grid-template-columns:96px 1fr; gap:14px; padding:9px 0; font-size:15px;
-  border-bottom:0.5px solid var(--fill)}
-.slot:last-child{border-bottom:none}
-.slot .t{font-size:13px; color:var(--ink-2); padding-top:1px}
+.sect h3{font-size:12.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); margin-bottom:12px}
+.menu-line{display:flex; justify-content:space-between; align-items:center; padding:11px 14px; font-size:15px;
+  background:var(--surface-2); border:.5px solid var(--hairline); border-radius:12px; margin-bottom:8px}
+.safe-chip{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:650; color:var(--verify-2);
+  background:var(--verify-soft); padding:4px 10px; border-radius:var(--r-pill)}
+.safe-chip::before{content:""; width:12px; height:12px;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E7C4A' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5 13l4 4L19 7'/></svg>") center/contain no-repeat}
+
+/* run-of-show timeline */
+.slot{position:relative; display:flex; gap:14px; align-items:flex-start; padding:0 0 16px 22px}
+.slot::before{content:""; position:absolute; left:4px; top:6px; width:9px; height:9px; border-radius:50%;
+  background:var(--surface); border:2.5px solid var(--accent)}
+.slot::after{content:""; position:absolute; left:8px; top:15px; bottom:-1px; width:1.5px; background:var(--hairline)}
+.slot:last-child{padding-bottom:0}
+.slot:last-child::after{display:none}
+.slot .t{font-size:13px; color:var(--ink-2); min-width:104px}
+.slot span:last-child{font-size:14.5px}
+
 .tags{display:flex; flex-wrap:wrap; gap:8px}
-.tag{font-size:14px; background:var(--canvas); padding:8px 14px; border-radius:999px}
-.menu-line{display:flex; justify-content:space-between; align-items:center; padding:9px 0;
-  border-bottom:0.5px solid var(--fill); font-size:15px}
-.menu-line:last-child{border-bottom:none}
-.safe-chip{font-size:12px; font-weight:600; color:var(--verify); background:var(--verify-soft);
-  padding:4px 10px; border-radius:999px}
-.note{margin-top:22px; font-size:14px; color:var(--ink-2); background:var(--canvas);
-  border-radius:var(--r-ctl); padding:14px 16px}
+.tag{font-size:13.5px; font-weight:550; color:var(--ink); background:var(--fill);
+  padding:8px 14px; border-radius:var(--r-pill); border:.5px solid var(--hairline)}
+.note{margin-top:14px; font-size:13.5px; color:var(--ink-2); line-height:1.55; background:var(--surface-2);
+  border:.5px solid var(--hairline); border-radius:12px; padding:12px 14px}
 
-.actions{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:26px}
-.actions .cta{grid-column:1 / -1}
-.book-done{grid-column:1 / -1; min-height:50px; display:grid; place-items:center;
-  background:var(--verify-soft); color:var(--verify); border-radius:var(--r-ctl);
-  font-size:15px; font-weight:600}
+.actions{display:flex; gap:10px; margin-top:26px; flex-wrap:wrap}
+.actions .cta{flex:1; min-width:200px; height:50px; font-size:16px}
+.btn-quiet{height:50px; padding:0 18px; border:1px solid var(--hairline); background:var(--surface);
+  border-radius:var(--r-ctl); font-family:inherit; font-size:15px; font-weight:600; color:var(--ink); cursor:pointer;
+  transition:background .16s var(--ease), border-color .16s var(--ease), transform .16s var(--spring)}
+.btn-quiet:hover{background:var(--surface-2); border-color:#D2D2DA}
+.btn-quiet:active{transform:scale(.97)}
+.book-done{margin-top:6px; flex-basis:100%; text-align:center; font-size:14.5px; color:var(--verify-2);
+  background:var(--verify-soft); border-radius:var(--r-ctl); padding:14px}
 
-/* feedback */
-.fb{margin-top:22px; padding:18px; background:var(--canvas); border-radius:var(--r-ctl); text-align:center}
-.fb p{font-size:15px; font-weight:600; margin-bottom:12px}
-.fb-row{display:flex; gap:10px; justify-content:center}
-.fb-row .btn-quiet{background:var(--surface); min-width:88px; border:0.5px solid var(--hairline)}
-.fb-done{font-size:15px; font-weight:600; color:var(--verify)}
+.fb{margin-top:24px; padding-top:20px; border-top:.5px solid var(--hairline-2); text-align:center}
+.fb p{font-size:14.5px; color:var(--ink-2); margin-bottom:12px}
+.fb-row{display:flex; gap:8px; justify-content:center}
+.fb-row .btn-quiet{height:42px; padding:0 22px; font-size:14px}
+.fb-done{font-size:14.5px; color:var(--ink-2); text-align:center}
 
-/* honest refusal — designed as carefully as success */
-.refusal{padding:36px 28px; text-align:center}
-.refusal .halt{width:56px; height:56px; margin:0 auto 16px; border-radius:50%;
-  background:var(--danger-soft); display:grid; place-items:center}
-.refusal .halt svg{width:24px; height:24px; color:var(--danger)}
-.refusal h2{font-size:22px; font-weight:700; letter-spacing:-.02em}
-.refusal .why{margin:10px auto 0; max-width:44ch; font-size:15px; color:var(--ink-2)}
-.refusal .min{margin-top:24px}
-.refusal .min .n{font-size:44px; font-weight:700; letter-spacing:-.03em}
-.refusal .min .l{font-size:13px; color:var(--ink-2); margin-top:2px}
-.refusal .binding{margin-top:22px; text-align:left; display:grid; gap:8px}
-.refusal .binding div{font-size:14px; color:var(--ink-2); padding-left:18px; position:relative}
-.refusal .binding div::before{content:""; position:absolute; left:0; top:7px; width:7px; height:7px;
-  border-radius:50%; background:var(--danger)}
+/* refusal state */
+.refusal{padding:44px 30px; text-align:center}
+.halt{width:60px; height:60px; margin:0 auto 18px; color:var(--accent);
+  display:flex; align-items:center; justify-content:center; border-radius:50%; background:var(--danger-soft)}
+.halt svg{width:34px; height:34px}
+.refusal h2{font-size:24px; font-weight:700; letter-spacing:-.02em}
+.refusal .why{font-size:16px; color:var(--ink-2); max-width:44ch; margin:12px auto 0}
+.refusal .min{margin:24px auto 0; max-width:340px; padding:20px; background:var(--surface-2);
+  border:.5px solid var(--hairline); border-radius:var(--r-ctl)}
+.refusal .min .n{font-size:34px; font-weight:750; color:var(--ink)}
+.refusal .min .l{font-size:13.5px; color:var(--ink-2); margin-top:2px}
+.refusal .binding{margin:16px auto 0; max-width:44ch; font-size:13.5px; color:var(--ink-2); line-height:1.6}
 
-/* under the hood — quiet disclosure */
-.hood{margin-top:4px}
-.hood summary{
-  list-style:none; cursor:pointer; font-size:13px; color:var(--ink-2); text-align:center;
-  padding:12px; user-select:none;
-}
+/* empty */
+.empty{padding:60px 30px; text-align:center; color:var(--ink-2); font-size:15.5px; line-height:1.6}
+
+/* ============================ Under the hood ============================ */
+.hood{background:var(--surface); border-radius:var(--r-card); border:.5px solid rgba(17,17,20,.06); box-shadow:var(--sh-1)}
+.hood summary{list-style:none; cursor:pointer; font-size:13.5px; font-weight:600; color:var(--ink-2);
+  text-align:center; padding:15px; user-select:none; transition:color .16s var(--ease)}
 .hood summary::-webkit-details-marker{display:none}
+.hood summary::after{content:"›"; display:inline-block; margin-left:7px; transform:rotate(90deg); transition:transform .2s var(--ease)}
+.hood[open] summary::after{transform:rotate(-90deg)}
 .hood summary:hover{color:var(--ink)}
-.hood-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:6px 4px 14px}
-.hood-cell{background:var(--surface); border-radius:var(--r-ctl); padding:12px; text-align:center;
-  border:0.5px solid rgba(0,0,0,.05)}
+.hood-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:4px 14px 16px}
+.hood-cell{background:var(--surface-2); border-radius:12px; padding:13px; text-align:center; border:.5px solid var(--hairline)}
 .hood-cell .v{font-size:18px; font-weight:700}
-.hood-cell .k{font-size:11px; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-top:2px}
+.hood-cell .k{font-size:10.5px; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-top:3px}
 
-/* ============ JEPA — anticipatory intelligence panel ============ */
-.jepa{margin:2px 4px 14px; padding:16px; border-radius:var(--r-ctl);
-  background:linear-gradient(180deg,#F6F4FF,#FFFFFF); border:0.5px solid #E4DEFB}
-.jepa-head{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700;
-  letter-spacing:-.01em; color:#4B2FBF}
-.jepa-head .badge{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
-  color:#5B3FD6; background:#EDE7FF; border-radius:999px; padding:2px 8px}
-.jepa-sub{font-size:12px; color:var(--ink-2); margin:4px 0 12px}
-.jepa-metrics{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px}
-.jepa-metrics .v{font-size:18px; font-weight:700; color:#3A2A9E}
-.jepa-metrics .k{font-size:10.5px; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-top:2px}
-.diffbar{height:6px; border-radius:999px; background:#E7E2F7; overflow:hidden; margin-top:8px}
-.diffbar > i{display:block; height:100%; border-radius:999px;
-  background:linear-gradient(90deg,#7C6BE0,#4B2FBF)}
-.energy-row{display:flex; align-items:center; gap:8px; font-size:12px; padding:5px 0;
-  border-top:0.5px solid #ECE7FB}
-.energy-row .cand{width:64px; color:var(--ink-2)}
-.energy-track{flex:1; height:6px; border-radius:999px; background:#E7E2F7; overflow:hidden}
-.energy-track > i{display:block; height:100%}
-.energy-row .verdict{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
-  padding:2px 7px; border-radius:999px}
-.verdict.pass{color:var(--verify); background:var(--verify-soft)}
+/* JEPA panel */
+.jepa{margin:6px 14px 14px; padding:20px; border-radius:16px;
+  background:linear-gradient(180deg,var(--violet-soft),#FFFFFF 72%); border:.5px solid var(--violet-line)}
+.jepa-head{display:flex; align-items:center; gap:9px; font-size:14px; font-weight:700; letter-spacing:-.01em; color:var(--violet-ink)}
+.jepa-head .badge{font-size:10px; font-weight:750; text-transform:uppercase; letter-spacing:.07em;
+  color:var(--violet); background:#EAE4FE; border-radius:var(--r-pill); padding:3px 9px}
+.jepa-sub{font-size:12.5px; color:var(--ink-2); margin:6px 0 15px; line-height:1.5}
+.jepa-metrics{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:15px}
+.jepa-metrics > div{background:rgba(255,255,255,.7); border:.5px solid var(--violet-line); border-radius:12px; padding:12px}
+.jepa-metrics .v{font-size:20px; font-weight:750; color:var(--violet-ink); letter-spacing:-.01em}
+.jepa-metrics .k{font-size:10px; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-top:3px}
+.diffbar{height:6px; border-radius:var(--r-pill); background:#E7E2F7; overflow:hidden; margin-top:9px}
+.diffbar > i{display:block; height:100%; width:0; border-radius:var(--r-pill);
+  background:linear-gradient(90deg,var(--violet-2),var(--violet)); transition:width .9s var(--ease) .15s}
+.energy-cap{font-size:10.5px; color:var(--ink-2); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px}
+.energy-row{display:flex; align-items:center; gap:9px; font-size:12px; padding:6px 0; border-top:.5px solid var(--violet-line)}
+.energy-row .cand{width:60px; color:var(--ink-2)}
+.energy-track{flex:1; height:6px; border-radius:var(--r-pill); background:#E7E2F7; overflow:hidden}
+.energy-track > i{display:block; height:100%; width:0; transition:width .8s var(--ease) .2s}
+.energy-row .verdict{font-size:10px; font-weight:750; text-transform:uppercase; letter-spacing:.05em; padding:3px 8px; border-radius:var(--r-pill)}
+.verdict.pass{color:var(--verify-2); background:var(--verify-soft)}
 .verdict.fail{color:var(--danger); background:var(--danger-soft)}
+.jepa-foot{font-size:12px; color:var(--ink-2); margin-top:12px}
 
-.empty{padding:64px 28px; text-align:center; color:var(--ink-2); font-size:15px}
-footer{max-width:640px; margin:0 auto; padding:0 24px 56px; text-align:center; font-size:13px; color:var(--ink-2)}
+footer{max-width:660px; margin:0 auto; padding:0 24px 60px; text-align:center; font-size:13px; color:var(--ink-3)}
 footer .mono{font-size:12px}
 
 @media(prefers-reduced-motion:reduce){
@@ -242,11 +266,11 @@ footer .mono{font-size:12px}
 
 <nav class="glassbar" aria-label="iParty">
   <span class="wordmark">iParty<span class="dot">.</span></span>
-  <span class="tagline">Verified party planning</span>
+  <span class="nav-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified planning</span>
 </nav>
 
 <header class="hero">
-  <h1>Every promise,<br>checked first.</h1>
+  <h1>Every promise,<br><span class="grad">checked first.</span></h1>
   <p class="sub">Describe the guest of honor. iParty builds the party and verifies it against your real constraints — budget, headcount, declared allergen data — before you ever see it. If it can't be done, we say so.</p>
   <div class="assurances" aria-label="What gets verified">
     <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Budget adds up</span>
@@ -260,7 +284,7 @@ footer .mono{font-size:12px}
     <form id="party-form">
       <div>
         <div class="form-title">Who are we celebrating?</div>
-        <div class="form-sub">Six details. About a minute.</div>
+        <div class="form-sub">A few details. About a minute.</div>
       </div>
       <div class="row">
         <div><label for="honoree_name">Name</label><input id="honoree_name" required value="Aria" autocomplete="off" /></div>
@@ -272,18 +296,32 @@ footer .mono{font-size:12px}
       </div>
       <div class="row">
         <div><label for="budget">Budget (USD)</label><input id="budget" type="number" min="1" step="10" required value="650" /></div>
-        <div><label for="location_type">Where</label>
-          <select id="location_type"><option value="home">At home</option><option value="venue">A venue</option><option value="park">A park</option><option value="restaurant">A restaurant</option></select>
-        </div>
-      </div>
-      <div class="row">
         <div><label for="start_time">Starts at</label><input id="start_time" type="time" value="14:00" required /></div>
-        <div><label for="duration_hours">Length</label>
-          <select id="duration_hours"><option value="1.5">1½ hours</option><option value="2">2 hours</option><option value="2.5" selected>2½ hours</option><option value="3">3 hours</option><option value="4">4 hours</option><option value="6">6 hours</option></select></div>
       </div>
-      <div><label for="theme">Theme <span style="font-weight:400">(optional)</span></label><input id="theme" value="Under the Sea" placeholder="We'll choose if blank" /></div>
-      <div><label for="dietary_restrictions">Allergies or dietary needs <span style="font-weight:400">(optional)</span></label><input id="dietary_restrictions" value="gluten-free" placeholder="e.g. nut allergy, vegan, kosher, halal" /></div>
-      <div><label for="special_requests">Special requests <span style="font-weight:400">(optional)</span></label><input id="special_requests" value="" placeholder="e.g. wheelchair access, rain backup, quiet music, surprise party" maxlength="500" /></div>
+      <div>
+        <label id="loc-label">Where</label>
+        <div class="seg" id="loc-seg" role="group" aria-labelledby="loc-label">
+          <button type="button" data-v="home" class="on">At home</button>
+          <button type="button" data-v="venue">A venue</button>
+          <button type="button" data-v="park">A park</button>
+          <button type="button" data-v="restaurant">Restaurant</button>
+        </div>
+        <select id="location_type" class="sr-only" tabindex="-1" aria-hidden="true">
+          <option value="home">At home</option><option value="venue">A venue</option>
+          <option value="park">A park</option><option value="restaurant">A restaurant</option>
+        </select>
+      </div>
+      <div>
+        <label for="duration_hours">Length</label>
+        <select id="duration_hours">
+          <option value="1.5">1½ hours</option><option value="2">2 hours</option>
+          <option value="2.5" selected>2½ hours</option><option value="3">3 hours</option>
+          <option value="4">4 hours</option><option value="6">6 hours</option>
+        </select>
+      </div>
+      <div><label for="theme">Theme <span class="opt">(optional)</span></label><input id="theme" value="Under the Sea" placeholder="We'll choose if blank" /></div>
+      <div><label for="dietary_restrictions">Allergies or dietary needs <span class="opt">(optional)</span></label><input id="dietary_restrictions" value="gluten-free" placeholder="e.g. nut allergy, vegan, kosher, halal" /></div>
+      <div><label for="special_requests">Special requests <span class="opt">(optional)</span></label><input id="special_requests" value="" placeholder="e.g. wheelchair access, rain backup, quiet music" maxlength="500" /></div>
       <button class="cta" type="submit" id="submit-btn">Build my verified plan</button>
     </form>
   </section>
@@ -334,10 +372,32 @@ document.addEventListener("input",(e)=>{
   }
 },true);
 
+// Segmented location control -> keeps hidden <select id="location_type"> in sync
+document.querySelectorAll("#loc-seg button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#loc-seg button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+  $("location_type").value = b.dataset.v;
+  if(!_formStarted){ _formStarted=true; track("form_started"); }
+}));
+
 (() => { const d=new Date(); d.setDate(d.getDate()+21); $("party_date").value=d.toISOString().slice(0,10); })();
 fetch("/health").then(r=>r.json()).then(h=>{ if(h.backend) $("backend-tag").textContent=h.backend; }).catch(()=>{});
 
 const fmt = (n)=>"$"+n.toFixed(2);
+
+// count-up animation for headline numbers
+function countUp(el, to, dur, fmtFn){
+  if(!el) return;
+  const start = performance.now();
+  const step = (t)=>{
+    const k = Math.min(1,(t-start)/dur);
+    const eased = 1-Math.pow(1-k,3);
+    el.textContent = fmtFn(to*eased);
+    if(k<1) requestAnimationFrame(step);
+    else el.textContent = fmtFn(to);
+  };
+  requestAnimationFrame(step);
+}
 
 function verifyingSkeleton(){
   return `<div class="card pass">
@@ -354,10 +414,10 @@ function verifyingSkeleton(){
 }
 
 async function animateStages(){
-  const steps=["Building candidates…","Pricing from the catalog…","Checking budget and portions…","Checking allergen data…"];
+  const steps=["Building candidates…","Pricing from the catalog…","Checking budget and portions…","Checking allergen data…","Reading the model's prediction…"];
   for(const s of steps){
     const el=$("pass-status"); if(el) el.textContent=s;
-    await new Promise(r=>setTimeout(r,320));
+    await new Promise(r=>setTimeout(r,300));
   }
 }
 
@@ -429,12 +489,11 @@ function renderPass(data, req){
       <div class="pass-title">${esc(p.theme)}</div>
       <div class="pass-meta">${esc(req.honoree_name)} turns ${esc(req.honoree_age)} · ${esc(req.guest_count)} guests · ${esc(p.venue)}</div>
     </div>
-    <div class="perf"></div>
     <div class="pass-body">
       <div class="receipt">${items}</div>
       <div class="total">
         <span class="lbl">TOTAL</span>
-        <span><span class="sum mono">${fmt(p.total_cost)}</span> <span class="of">of ${fmt(req.budget)}</span></span>
+        <span><span class="sum mono" id="sum-out">${fmt(p.total_cost)}</span> <span class="of">of ${fmt(req.budget)}</span></span>
       </div>
       <div class="budget-track"><div class="budget-fill" id="budget-fill"></div></div>
 
@@ -442,7 +501,7 @@ function renderPass(data, req){
       <div class="sect"><h3>Run of show</h3>${sched}</div>
       <div class="sect"><h3>Activities</h3><div class="tags">${acts}</div></div>
       <div class="sect"><h3>Supplies</h3><div class="tags">${supplies}</div></div>
-      ${(v.violations||[]).filter(x=>x.severity==="warning").map(w=>`<div class="note" style="border-left:3px solid #d97706;padding-left:10px">${esc(w.message)}</div>`).join("")}
+      ${(v.violations||[]).filter(x=>x.severity==="warning").map(w=>`<div class="note" style="border-left:3px solid #d97706;padding-left:12px">${esc(w.message)}</div>`).join("")}
       ${p.notes?`<div class="note">${esc(p.notes)}</div>`:""}
 
       <div class="actions">
@@ -463,6 +522,7 @@ function renderPass(data, req){
   </article>`;
 
   requestAnimationFrame(()=>{ const f=$("budget-fill"); if(f) f.style.width=pct+"%"; });
+  countUp($("sum-out"), p.total_cost, 900, fmt);
   $("copy-btn").addEventListener("click",(e)=>copyPlan(p, req, e.target));
   $("dl-btn").addEventListener("click",()=>downloadPlan(p, req));
   $("book-btn").addEventListener("click",(e)=>{
@@ -471,7 +531,7 @@ function renderPass(data, req){
   });
   document.querySelectorAll("#fb .btn-quiet").forEach(b=>b.addEventListener("click",()=>{
     track("feedback_answered",{answer:b.dataset.a});
-    $("fb").innerHTML = '<div class="fb-done">Thank you — that genuinely helps.</div>';
+    $("fb").innerHTML = '<div class="fb-done">Thank you — that helps.</div>';
   }));
 }
 
@@ -488,7 +548,7 @@ function renderInfeasible(detail, req){
     </div>
     <h2>This one can't be done — honestly.</h2>
     <p class="why">We checked every combination in the catalog. Nothing satisfies all of your constraints, so we won't show you a plan that pretends to.</p>
-    ${min?`<div class="min"><div class="n mono">$${min.toFixed(0)}</div><div class="l">is where a workable party for ${req.guest_count} guests starts</div></div>`:""}
+    ${min?`<div class="min"><div class="n mono">$${min.toFixed(0)}</div><div class="l">is where a workable party for ${esc(req.guest_count)} guests starts</div></div>`:""}
     ${binding?`<div class="binding">${binding}</div>`:""}
   </article>`;
 }
@@ -508,7 +568,7 @@ function renderJepa(j){
     const col = e.verifier==="PASS" ? "var(--verify)" : "var(--danger)";
     return `<div class="energy-row">
       <span class="cand mono">cand ${e.candidate}</span>
-      <span class="energy-track"><i style="width:${p}%; background:${col}"></i></span>
+      <span class="energy-track"><i data-w="${p}" style="background:${col}"></i></span>
       <span class="mono" style="width:38px; text-align:right; color:var(--ink-2)">${p}%</span>
       <span class="verdict ${e.verifier==='PASS'?'pass':'fail'}">${e.verifier}</span>
     </div>`;
@@ -520,13 +580,15 @@ function renderJepa(j){
       workload predicts risk <em>before</em> planning, then checks its own predictions.</div>
     <div class="jepa-metrics">
       <div><div class="v mono">${pct(diff)}</div><div class="k">predicted difficulty</div>
-        <div class="diffbar"><i style="width:${Math.round(diff*100)}%"></i></div></div>
+        <div class="diffbar"><i data-w="${Math.round(diff*100)}"></i></div></div>
       <div><div class="v mono">${j.candidate_budget ?? "—"}</div><div class="k">candidate budget</div></div>
       <div><div class="v mono">${cal==null?"warming up":pct(cal)}</div><div class="k">self-calibration</div></div>
     </div>
-    ${rows ? `<div style="font-size:11px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">predicted energy vs. verifier verdict</div>${rows}` : ""}
-    <div class="jepa-sub" style="margin:10px 0 0">Learned from ${j.examples_seen ?? 0} verified plans so far.</div>
+    ${rows ? `<div class="energy-cap">predicted energy vs. verifier verdict</div>${rows}` : ""}
+    <div class="jepa-foot">Learned from ${j.examples_seen ?? 0} verified plans so far.</div>
   </div>`;
+  // animate bar fills after paint
+  requestAnimationFrame(()=>host.querySelectorAll("[data-w]").forEach(i=>{ i.style.width = i.dataset.w+"%"; }));
 }
 
 function renderTelemetry(t){
@@ -576,7 +638,7 @@ $("party-form").addEventListener("submit", async (e)=>{
     renderPass(data, req);
     renderTelemetry(data.telemetry);
   }catch(err){
-    $("result").innerHTML = `<div class="card empty">Something interrupted the check: ${err.message}.<br>Make sure the server is running, then try again.</div>`;
+    $("result").innerHTML = `<div class="card empty">Something interrupted the check: ${esc(err.message)}.<br>Make sure the server is running, then try again.</div>`;
   }finally{ btn.disabled=false; btn.textContent="Build my verified plan"; }
 });
 </script>
