@@ -5,21 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>iParty — verified party planning</title>
 <style>
-/* ============================ Tokens ============================ */
+/* ============================ Tokens ============================
+   2026 warm-neutral system: oatmeal canvas + warm near-black ink,
+   terracotta primary, sage "verified" green, indigo reserved as the
+   technical/AI (JEPA) accent. Warm neutrals replace cold grays. */
 :root{
-  --canvas:#F4F4F7; --canvas-2:#ECECF1; --surface:#FFFFFF; --surface-2:#FBFBFD;
-  --ink:#111114; --ink-2:#6A6A73; --ink-3:#9A9AA3;
-  --hairline:#E4E4EA; --hairline-2:#EDEDF2; --fill:#F0F0F5;
-  --verify:#12965A; --verify-2:#0E7C4A; --verify-soft:#E4F6EC;
-  --accent:#F5215B; --accent-2:#FF4D7D; --accent-press:#D5054A;
-  --danger:#DE1135; --danger-soft:#FDECEE;
-  --amber:#C77712;
-  --violet:#5A3FE0; --violet-2:#7C67EA; --violet-ink:#3A2A9E; --violet-soft:#EFEBFE; --violet-line:#E1DAFB;
+  --canvas:#F3EEE4; --canvas-2:#EBE3D5; --surface:#FFFDFA; --surface-2:#FAF5EC;
+  --ink:#211D18; --ink-2:#6F675B; --ink-3:#A69C8B;
+  --hairline:#E7DFCF; --hairline-2:#F0E9DB; --fill:#F1E9DA;
+  --verify:#4F8C51; --verify-2:#3B6B40; --verify-soft:#E7EFDA;
+  --accent:#DC5731; --accent-2:#EC7248; --accent-press:#BE451F;
+  --danger:#C6402A; --danger-soft:#F8E6DF;
+  --amber:#C0791A;
+  --violet:#5646D8; --violet-2:#7A6BEC; --violet-ink:#382C93; --violet-soft:#EDE9FB; --violet-line:#DED7F7;
   --r-xl:30px; --r-card:22px; --r-ctl:14px; --r-pill:999px;
-  --sh-1:0 1px 2px rgba(17,17,20,.04), 0 1px 3px rgba(17,17,20,.03);
-  --sh-2:0 2px 6px rgba(17,17,20,.05), 0 18px 40px -22px rgba(17,17,20,.16);
-  --sh-3:0 4px 12px rgba(17,17,20,.06), 0 40px 80px -32px rgba(17,17,20,.24);
-  --sh-accent:0 10px 30px -10px rgba(245,33,91,.5);
+  --sh-1:0 1px 2px rgba(64,48,28,.05), 0 1px 3px rgba(64,48,28,.04);
+  --sh-2:0 2px 6px rgba(64,48,28,.06), 0 18px 40px -22px rgba(64,48,28,.18);
+  --sh-3:0 4px 12px rgba(64,48,28,.07), 0 40px 80px -32px rgba(64,48,28,.26);
+  --sh-accent:0 10px 30px -10px rgba(220,87,49,.5);
   --ease:cubic-bezier(.22,.61,.36,1); --spring:cubic-bezier(.34,1.42,.5,1);
 }
 *{box-sizing:border-box; margin:0; padding:0}
@@ -29,9 +32,9 @@ body{
   color:var(--ink); font-size:17px; line-height:1.5; letter-spacing:-.011em;
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   background:
-    radial-gradient(1100px 520px at 50% -8%, #FFFFFF 0%, rgba(255,255,255,0) 60%),
-    radial-gradient(760px 420px at 88% 4%, rgba(245,33,91,.06) 0%, rgba(245,33,91,0) 55%),
-    radial-gradient(720px 460px at 8% 8%, rgba(90,63,224,.06) 0%, rgba(90,63,224,0) 55%),
+    radial-gradient(1100px 520px at 50% -8%, #FFFCF6 0%, rgba(255,252,246,0) 62%),
+    radial-gradient(780px 440px at 88% 2%, rgba(220,87,49,.07) 0%, rgba(220,87,49,0) 56%),
+    radial-gradient(720px 460px at 6% 10%, rgba(79,140,81,.07) 0%, rgba(79,140,81,0) 56%),
     var(--canvas);
   min-height:100vh;
 }
@@ -60,7 +63,7 @@ body{
   font-size:clamp(38px,6.6vw,62px); font-weight:700; letter-spacing:-.028em; line-height:1.05;
 }
 .hero h1 .grad{
-  background:linear-gradient(120deg,var(--accent),var(--violet) 90%);
+  background:linear-gradient(115deg,var(--accent) 8%,#E0932E 96%);
   -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
 }
 .hero .sub{margin:20px auto 0; max-width:54ch; font-size:19px; color:var(--ink-2); letter-spacing:-.014em}
@@ -92,8 +95,8 @@ input,select{
 input::placeholder{color:var(--ink-3)}
 input:hover,select:hover{border-color:#D2D2DA}
 input:focus,select:focus{outline:none; background:var(--surface); border-color:var(--accent);
-  box-shadow:0 0 0 4px rgba(245,33,91,.12)}
-select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236A6A73' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  box-shadow:0 0 0 4px rgba(220,87,49,.14)}
+select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236F675B' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
   background-repeat:no-repeat; background-position:right 14px center; padding-right:38px}
 
 /* segmented control (location) */
@@ -156,7 +159,7 @@ select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.o
 .total .of{font-size:14px; color:var(--ink-2); margin-left:4px}
 .budget-track{height:8px; border-radius:var(--r-pill); background:var(--fill); overflow:hidden; margin-top:12px; position:relative}
 .budget-fill{height:100%; width:0; border-radius:var(--r-pill);
-  background:linear-gradient(90deg,var(--verify),#25B26E); transition:width 1s var(--ease) .2s}
+  background:linear-gradient(90deg,var(--verify),#6DAE5F); transition:width 1s var(--ease) .2s}
 
 .sect{margin-top:26px}
 .sect h3{font-size:12.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); margin-bottom:12px}
@@ -165,7 +168,7 @@ select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.o
 .safe-chip{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:650; color:var(--verify-2);
   background:var(--verify-soft); padding:4px 10px; border-radius:var(--r-pill)}
 .safe-chip::before{content:""; width:12px; height:12px;
-  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E7C4A' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5 13l4 4L19 7'/></svg>") center/contain no-repeat}
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233B6B40' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5 13l4 4L19 7'/></svg>") center/contain no-repeat}
 
 /* run-of-show timeline */
 .slot{position:relative; display:flex; gap:14px; align-items:flex-start; padding:0 0 16px 22px}
