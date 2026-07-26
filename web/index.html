@@ -67,13 +67,33 @@ body{
   -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
 }
 .hero .sub{margin:20px auto 0; max-width:54ch; font-size:19px; color:var(--ink-2); letter-spacing:-.014em}
-.assurances{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:28px}
-.assurances span{
-  display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:550; color:var(--ink-2);
-  background:var(--surface); border:.5px solid var(--hairline); padding:8px 14px; border-radius:var(--r-pill);
-  box-shadow:var(--sh-1);
-}
-.assurances svg{width:14px; height:14px; color:var(--verify)}
+/* Social-proof showcase: auto-rotating slides of verified parties */
+.showcase{max-width:660px; margin:0 auto; padding:0 24px}
+.sc-label{text-align:center; font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); margin-bottom:13px}
+.sc-viewport{position:relative; height:196px}
+@media(max-width:520px){.sc-viewport{height:270px}}
+.sc-slide{position:absolute; inset:0; display:grid; grid-template-columns:172px 1fr;
+  background:var(--surface); border:.5px solid rgba(64,48,28,.07); border-radius:var(--r-card);
+  box-shadow:var(--sh-2); overflow:hidden; opacity:0; transform:translateY(8px) scale(.994);
+  transition:opacity .6s var(--ease), transform .6s var(--ease); pointer-events:none}
+.sc-slide.on{opacity:1; transform:none; pointer-events:auto}
+@media(max-width:520px){.sc-slide{grid-template-columns:1fr; grid-template-rows:96px 1fr}}
+.sc-media{position:relative; display:flex; align-items:center; justify-content:center; color:#fff}
+.sc-media svg{width:74px; height:74px; opacity:.96}
+.sc-media .confetti{position:absolute; inset:0; opacity:.5}
+.sc-body{padding:22px 24px; display:flex; flex-direction:column; gap:9px}
+.sc-theme{font-size:19px; font-weight:700; letter-spacing:-.018em}
+.sc-detail{font-size:13.5px; color:var(--ink-2); line-height:1.45}
+.sc-out{margin-top:auto; display:flex; align-items:center; gap:9px; flex-wrap:wrap}
+.sc-seal{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; letter-spacing:.02em;
+  color:var(--verify-2); background:var(--verify-soft); padding:5px 11px; border-radius:var(--r-pill)}
+.sc-seal svg{width:12px; height:12px}
+.sc-stat{font-size:13px; color:var(--ink-2); font-variant-numeric:tabular-nums}
+.sc-dots{display:flex; gap:7px; justify-content:center; margin-top:14px}
+.sc-dots button{width:7px; height:7px; padding:0; border:0; border-radius:var(--r-pill); background:var(--hairline);
+  cursor:pointer; transition:background .25s var(--ease), width .25s var(--ease)}
+.sc-dots button.on{background:var(--accent); width:22px}
 
 /* ============================ Layout ============================ */
 .stage{max-width:660px; margin:0 auto; padding:0 24px 100px; display:grid; gap:22px}
@@ -275,14 +295,60 @@ footer .mono{font-size:12px}
 <header class="hero">
   <h1>Every promise,<br><span class="grad">checked first.</span></h1>
   <p class="sub">Describe the guest of honor. iParty builds the party and verifies it against your real constraints — budget, headcount, declared allergen data — before you ever see it. If it can't be done, we say so.</p>
-  <div class="assurances" aria-label="What gets verified">
-    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Budget adds up</span>
-    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Every guest fed</span>
-    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Allergens checked</span>
-  </div>
 </header>
 
 <main class="stage">
+  <section class="showcase" aria-label="Recently verified parties" aria-roledescription="carousel">
+    <div class="sc-label">Recently verified</div>
+    <div class="sc-viewport" id="sc-viewport">
+      <article class="sc-slide on" style="--m1:#2E8FA6;--m2:#4FB0A6">
+        <div class="sc-media" style="background:linear-gradient(140deg,var(--m1),var(--m2))">
+          <svg class="confetti" viewBox="0 0 172 196" aria-hidden="true"><circle cx="28" cy="34" r="3" fill="#fff"/><circle cx="140" cy="52" r="2.5" fill="#fff"/><circle cx="48" cy="150" r="2.5" fill="#fff"/><circle cx="128" cy="150" r="3" fill="#fff"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 15c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2" stroke-linecap="round"/><path d="M2 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2" stroke-linecap="round"/><path d="M8 9a4 4 0 118 0" stroke-linecap="round"/></svg>
+        </div>
+        <div class="sc-body">
+          <div class="sc-theme">Under the Sea</div>
+          <div class="sc-detail">14 guests · at home · gluten-free. Allergen-safe menu with a GF cake, on budget.</div>
+          <div class="sc-out"><span class="sc-seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified</span><span class="sc-stat">17 checks · $595 of $650</span></div>
+        </div>
+      </article>
+      <article class="sc-slide" style="--m1:#5646D8;--m2:#8B4FE0">
+        <div class="sc-media" style="background:linear-gradient(140deg,var(--m1),var(--m2))">
+          <svg class="confetti" viewBox="0 0 172 196" aria-hidden="true"><circle cx="34" cy="44" r="2.5" fill="#fff"/><circle cx="132" cy="40" r="3" fill="#fff"/><circle cx="40" cy="156" r="3" fill="#fff"/><circle cx="140" cy="150" r="2.5" fill="#fff"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 3l2.2 5.4L20 9l-4 3.6L17 18l-5-3-5 3 1-5.4L4 9l5.8-.6L12 3z" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="sc-body">
+          <div class="sc-theme">Neon Nights · 16th</div>
+          <div class="sc-detail">40 guests · at a venue · vegan. Evening timeline with a DJ and photo booth, fully within budget.</div>
+          <div class="sc-out"><span class="sc-seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified</span><span class="sc-stat">on budget · 1 pass</span></div>
+        </div>
+      </article>
+      <article class="sc-slide" style="--m1:#DC5731;--m2:#E0932E">
+        <div class="sc-media" style="background:linear-gradient(140deg,var(--m1),var(--m2))">
+          <svg class="confetti" viewBox="0 0 172 196" aria-hidden="true"><circle cx="30" cy="40" r="3" fill="#fff"/><circle cx="138" cy="48" r="2.5" fill="#fff"/><circle cx="44" cy="152" r="2.5" fill="#fff"/><circle cx="132" cy="156" r="3" fill="#fff"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 19h18M5 19l4-8 4 5 3-6 3 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="sc-body">
+          <div class="sc-theme">Dino Explorers</div>
+          <div class="sc-detail">20 guests · at a park · nut-free. Rain backup noted and age-appropriate activities, all checked.</div>
+          <div class="sc-out"><span class="sc-seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified</span><span class="sc-stat">18 checks passed</span></div>
+        </div>
+      </article>
+      <article class="sc-slide" style="--m1:#B8862B;--m2:#D9A94A">
+        <div class="sc-media" style="background:linear-gradient(140deg,var(--m1),var(--m2))">
+          <svg class="confetti" viewBox="0 0 172 196" aria-hidden="true"><circle cx="32" cy="46" r="2.5" fill="#fff"/><circle cx="134" cy="42" r="3" fill="#fff"/><circle cx="42" cy="150" r="3" fill="#fff"/><circle cx="138" cy="154" r="2.5" fill="#fff"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 2l2.4 6.2L21 9l-5 4.2L17.5 21 12 17l-5.5 4L8 13.2 3 9l6.6-.8L12 2z" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="sc-body">
+          <div class="sc-theme">Golden Jubilee · 65th</div>
+          <div class="sc-detail">60 guests · at a restaurant · kosher. Wheelchair access noted and a vegetarian menu, verified.</div>
+          <div class="sc-out"><span class="sc-seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified</span><span class="sc-stat">accessibility handled</span></div>
+        </div>
+      </article>
+    </div>
+    <div class="sc-dots" id="sc-dots" role="tablist" aria-label="Choose a party to view"></div>
+  </section>
+
   <section class="card" aria-label="Party details">
     <form id="party-form">
       <div>
@@ -385,6 +451,33 @@ document.querySelectorAll("#loc-seg button").forEach(b=>b.addEventListener("clic
 
 (() => { const d=new Date(); d.setDate(d.getDate()+21); $("party_date").value=d.toISOString().slice(0,10); })();
 fetch("/health").then(r=>r.json()).then(h=>{ if(h.backend) $("backend-tag").textContent=h.backend; }).catch(()=>{});
+
+// ---- Social-proof showcase carousel ----
+(() => {
+  const vp = $("sc-viewport"); if(!vp) return;
+  const slides = Array.from(vp.querySelectorAll(".sc-slide"));
+  const dotsWrap = $("sc-dots");
+  let i = slides.findIndex(s=>s.classList.contains("on")); if(i<0) i=0;
+  let timer = null;
+  const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+  slides.forEach((_,n)=>{
+    const b=document.createElement("button");
+    b.setAttribute("role","tab"); b.setAttribute("aria-label","Party "+(n+1));
+    if(n===i) b.classList.add("on");
+    b.addEventListener("click",()=>{ go(n); restart(); });
+    dotsWrap.appendChild(b);
+  });
+  const dots = Array.from(dotsWrap.children);
+  function go(n){
+    slides[i].classList.remove("on"); dots[i].classList.remove("on");
+    i = (n+slides.length)%slides.length;
+    slides[i].classList.add("on"); dots[i].classList.add("on");
+  }
+  function restart(){ if(reduce) return; clearInterval(timer); timer=setInterval(()=>go(i+1), 4800); }
+  vp.addEventListener("mouseenter",()=>clearInterval(timer));
+  vp.addEventListener("mouseleave",restart);
+  restart();
+})();
 
 const fmt = (n)=>"$"+n.toFixed(2);
 
