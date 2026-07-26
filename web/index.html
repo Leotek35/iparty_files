@@ -33,11 +33,15 @@ body{
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   background:
     radial-gradient(1100px 520px at 50% -8%, #FFFCF6 0%, rgba(255,252,246,0) 62%),
-    radial-gradient(780px 440px at 88% 2%, rgba(220,87,49,.07) 0%, rgba(220,87,49,0) 56%),
-    radial-gradient(720px 460px at 6% 10%, rgba(79,140,81,.07) 0%, rgba(79,140,81,0) 56%),
     var(--canvas);
   min-height:100vh;
 }
+/* Live ambient wash — hues follow the theme the user types (set via JS) */
+body::before{content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(820px 460px at 88% 0%, var(--amb-a,rgba(220,87,49,.09)) 0%, transparent 56%),
+    radial-gradient(760px 480px at 6% 10%, var(--amb-b,rgba(79,140,81,.08)) 0%, transparent 56%);
+  transition:background .9s var(--ease)}
 .mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace; letter-spacing:0; font-variant-numeric:tabular-nums}
 .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
 
@@ -144,9 +148,21 @@ select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.o
 #result .card{overflow:hidden; animation:cardIn .5s var(--ease) both}
 @keyframes cardIn{from{opacity:0; transform:translateY(14px) scale(.99)} to{opacity:1; transform:none}}
 
-.pass-head{position:relative; padding:34px 30px 26px; text-align:center;
+.pass-head{position:relative; isolation:isolate; padding:34px 30px 26px; text-align:center;
   background:radial-gradient(120% 140% at 50% -10%, var(--verify-soft) 0%, rgba(228,246,236,0) 62%);
-  border-bottom:.5px solid var(--hairline-2)}
+  border-bottom:.5px solid var(--hairline-2); transition:background .5s var(--ease)}
+.pass-motif{position:absolute; inset:0; z-index:0; background-repeat:repeat; background-position:center;
+  opacity:0; transition:opacity .6s var(--ease); pointer-events:none}
+.pass-head.themed .pass-motif{opacity:.17}
+.pass-head > .verify-stage,.pass-head > .pass-status,.pass-head > div,.pass-head > .pass-title,.pass-head > .pass-meta{position:relative; z-index:1}
+/* themed (colored) header: switch trust marks + text to white for contrast */
+.pass-head.themed{border-bottom-color:rgba(255,255,255,.18)}
+.pass-head.themed .ring circle:first-of-type{stroke:rgba(255,255,255,.32)}
+.pass-head.themed .ring .arc,.pass-head.themed .ring .tick{stroke:#fff}
+.pass-head.themed .pass-status{color:rgba(255,255,255,.92)}
+.pass-head.themed .pass-title{color:#fff; text-shadow:0 1px 14px rgba(0,0,0,.2)}
+.pass-head.themed .pass-meta{color:rgba(255,255,255,.86)}
+.pass-head.themed .seal{background:#fff; color:var(--verify-2); box-shadow:0 8px 20px -8px rgba(0,0,0,.3)}
 .verify-stage{width:76px; height:76px; margin:0 auto 4px}
 .ring{width:76px; height:76px; transform:rotate(-90deg)}
 .ring circle{fill:none; stroke-width:5}
@@ -193,7 +209,7 @@ select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.o
 /* run-of-show timeline */
 .slot{position:relative; display:flex; gap:14px; align-items:flex-start; padding:0 0 16px 22px}
 .slot::before{content:""; position:absolute; left:4px; top:6px; width:9px; height:9px; border-radius:50%;
-  background:var(--surface); border:2.5px solid var(--accent)}
+  background:var(--surface); border:2.5px solid var(--th,var(--accent))}
 .slot::after{content:""; position:absolute; left:8px; top:15px; bottom:-1px; width:1.5px; background:var(--hairline)}
 .slot:last-child{padding-bottom:0}
 .slot:last-child::after{display:none}
@@ -452,6 +468,10 @@ document.querySelectorAll("#loc-seg button").forEach(b=>b.addEventListener("clic
 (() => { const d=new Date(); d.setDate(d.getDate()+21); $("party_date").value=d.toISOString().slice(0,10); })();
 fetch("/health").then(r=>r.json()).then(h=>{ if(h.backend) $("backend-tag").textContent=h.backend; }).catch(()=>{});
 
+// Live theme ambiance: the page hues shift as the customer types their theme.
+$("theme").addEventListener("input",(e)=>applyAmbient(e.target.value));
+applyAmbient($("theme").value);
+
 // ---- Social-proof showcase carousel ----
 (() => {
   const vp = $("sc-viewport"); if(!vp) return;
@@ -495,9 +515,68 @@ function countUp(el, to, dur, fmtFn){
   requestAnimationFrame(step);
 }
 
+// ============ Dynamic theme engine ============
+// Reads the free-text theme and generates an evocative skin: a color gradient
+// + a hand-drawn motif pattern. No external/copyrighted assets — everything is
+// procedurally generated inline, so it works offline and within the CSP.
+const THEMES = [
+  {k:["spider","spider-man","spiderman","web"], m:"web",     c1:"#C1121F", c2:"#14357A", ac:"#C1121F"},
+  {k:["frozen","ice","snow","winter","elsa","arctic","princess"], m:"snow", c1:"#2E6FA6", c2:"#4C93C4", ac:"#2E6FA6"},
+  {k:["space","galaxy","astronaut","rocket","planet","cosmic","moon","star wars","star"], m:"stars", c1:"#171B45", c2:"#4B349A", ac:"#6C5CE0"},
+  {k:["sea","ocean","mermaid","shark","fish","nautical","pirate","beach","water"], m:"waves", c1:"#0C6E77", c2:"#17968B", ac:"#0E7C86"},
+  {k:["dino","dinosaur","jungle","safari","animal","zoo","forest","explorer","wild"], m:"leaves", c1:"#2C7137", c2:"#4F8F34", ac:"#2F7D3A"},
+  {k:["unicorn","rainbow","magic","fairy","pony","princess castle"], m:"confetti", c1:"#C43C93", c2:"#7B4DE0", ac:"#C43C93"},
+  {k:["superhero","hero","super","comic","avenger","marvel","dc"], m:"burst", c1:"#D22F3C", c2:"#E07A1E", ac:"#E63946"},
+  {k:["racing","race","car","cars","speed","formula","motor","track"], m:"checkers", c1:"#23262B", c2:"#454A52", ac:"#E63946"},
+  {k:["music","disco","dance","pop","neon","dj","concert"], m:"notes", c1:"#7A1FA2", c2:"#C33C5E", ac:"#B12FA0"},
+  {k:["love","valentine","heart","sweetheart"], m:"hearts", c1:"#C42B63", c2:"#E0608A", ac:"#D6336C"},
+];
+const DEFAULT_THEME = {m:"confetti", c1:"#DC5731", c2:"#E0932E", ac:"#DC5731"};
+function themeFor(text){
+  const t=(text||"").toLowerCase();
+  for(const th of THEMES){ if(th.k.some(w=>t.includes(w))) return th; }
+  return DEFAULT_THEME;
+}
+function hexA(hex,a){ return hex + Math.round(a*255).toString(16).padStart(2,"0"); }
+function motifSVG(m){
+  const S="<svg xmlns='http://www.w3.org/2000/svg' ";
+  const W="stroke='white' fill='none' ";
+  const P={
+    web:[S+"width='90' height='90'><g "+W+"stroke-width='1.3'><path d='M0 0L90 22M0 0L90 50M0 0L90 82M0 0L82 90M0 0L50 90M0 0L22 90'/><path d='M22 0A22 22 0 0 1 0 22M46 0A46 46 0 0 1 0 46M70 0A70 70 0 0 1 0 70'/></g></svg>",90],
+    snow:[S+"width='64' height='64'><g "+W+"stroke-width='1.3' stroke-linecap='round'><path d='M32 12V52M12 32H52M18 18L46 46M46 18L18 46'/><path d='M32 12l-4 5M32 12l4 5M32 52l-4-5M32 52l4-5M12 32l5-4M12 32l5 4M52 32l-5-4M52 32l-5 4'/></g></svg>",64],
+    stars:[S+"width='74' height='74'><g fill='white'><circle cx='14' cy='18' r='1.6'/><circle cx='56' cy='42' r='1.4'/><circle cx='32' cy='62' r='1.5'/><path d='M52 12l1.6 4.4L58 18l-4.4 1.6L52 24l-1.6-4.4L46 18l4.4-1.6z'/><path d='M22 42l1.2 3.3L26.5 47l-3.3 1.2L22 51l-1.2-3.3L17.5 47l3.3-1.2z'/></g></svg>",74],
+    waves:[S+"width='80' height='40'><g "+W+"stroke-width='1.4' stroke-linecap='round'><path d='M0 12q10 -8 20 0t20 0 20 0 20 0'/><path d='M0 28q10 -8 20 0t20 0 20 0 20 0'/></g></svg>",80],
+    leaves:[S+"width='72' height='72'><g "+W+"stroke-width='1.3' stroke-linecap='round'><path d='M14 42c0-15 13-25 26-25 0 15-11 27-26 27z'/><path d='M21 32q11 6 17 17'/><path d='M48 58c0-8 7-14 15-14 0 8-7 14-15 14z'/></g></svg>",72],
+    burst:[S+"width='84' height='84'><g "+W+"stroke-width='1.3'><path d='M42 42L42 6M42 42L68 16M42 42L78 42M42 42L68 68M42 42L42 78M42 42L16 68M42 42L6 42M42 42L16 16'/></g></svg>",84],
+    checkers:[S+"width='48' height='48'><g fill='white'><rect x='0' y='0' width='24' height='24'/><rect x='24' y='24' width='24' height='24'/></g></svg>",48],
+    notes:[S+"width='64' height='64'><g fill='white'><circle cx='16' cy='42' r='5'/><rect x='20' y='16' width='2.4' height='26'/><path d='M20 16q11 2 13 9' "+W+"stroke-width='2'/><circle cx='46' cy='50' r='4'/><rect x='49' y='28' width='2.2' height='22'/></g></svg>",64],
+    hearts:[S+"width='60' height='60'><g fill='white'><path d='M30 44c-10-7-18-13-18-22a8 8 0 0 1 18-3 8 8 0 0 1 18 3c0 9-8 15-18 22z'/></g></svg>",60],
+    confetti:[S+"width='72' height='72'><g fill='white'><rect x='10' y='12' width='6' height='6' rx='1' transform='rotate(20 13 15)'/><rect x='48' y='20' width='5' height='5' rx='1' transform='rotate(-15 50 22)'/><circle cx='30' cy='40' r='2.4'/><rect x='20' y='54' width='6' height='6' rx='1' transform='rotate(35 23 57)'/><circle cx='56' cy='52' r='2'/></g></svg>",72],
+  };
+  return P[m] || P.confetti;
+}
+function applyThemeToHead(head, th){
+  if(!head) return;
+  head.style.background = `linear-gradient(140deg, ${th.c1}, ${th.c2})`;
+  head.classList.add("themed");
+  const motif = head.querySelector(".pass-motif");
+  if(motif){
+    const [svg,size] = motifSVG(th.m);
+    motif.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+    motif.style.backgroundSize = size+"px";
+  }
+}
+function themeResult(text){ applyThemeToHead($("result").querySelector(".pass-head"), themeFor(text)); }
+function applyAmbient(text){
+  const th = themeFor(text);
+  document.body.style.setProperty("--amb-a", hexA(th.c1,0.12));
+  document.body.style.setProperty("--amb-b", hexA(th.ac||th.c2,0.11));
+}
+
 function verifyingSkeleton(){
   return `<div class="card pass">
     <div class="pass-head">
+      <div class="pass-motif"></div>
       <div class="verify-stage">
         <svg class="ring" viewBox="0 0 76 76" aria-hidden="true">
           <circle cx="38" cy="38" r="34"/>
@@ -570,9 +649,11 @@ function renderPass(data, req){
     <div class="menu-line"><span>${esc(m.name)}</span>${diet?`<span class="safe-chip">checked</span>`:`<span class="mono" style="font-size:13px;color:var(--ink-2)">serves ${m.servings}</span>`}</div>`).join("");
   const pct = Math.min(100,(p.total_cost/req.budget)*100).toFixed(1);
 
+  const th = themeFor(req.theme || p.theme);
   $("result").innerHTML = `
-  <article class="card pass">
+  <article class="card pass" style="--th:${th.ac}">
     <div class="pass-head">
+      <div class="pass-motif"></div>
       <div class="verify-stage">
         <svg class="ring" viewBox="0 0 76 76" aria-hidden="true">
           <circle cx="38" cy="38" r="34"/>
@@ -617,6 +698,7 @@ function renderPass(data, req){
     </div>
   </article>`;
 
+  applyThemeToHead($("result").querySelector(".pass-head"), th);
   requestAnimationFrame(()=>{ const f=$("budget-fill"); if(f) f.style.width=pct+"%"; });
   countUp($("sum-out"), p.total_cost, 900, fmt);
   $("copy-btn").addEventListener("click",(e)=>copyPlan(p, req, e.target));
@@ -715,6 +797,7 @@ $("party-form").addEventListener("submit", async (e)=>{
   track("plan_requested",{has_diet:String(!!req.dietary_restrictions.trim()),
     guests_band:guestsBand(req.guest_count), budget_band:budgetBand(req.budget)});
   $("result").innerHTML = verifyingSkeleton();
+  themeResult(req.theme);
   const stagesPromise = animateStages();
   try{
     const r = await fetch("/api/v1/plan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(req)});
