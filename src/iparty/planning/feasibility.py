@@ -55,9 +55,7 @@ def cheapest_compliant_draft(request, catalog: Catalog) -> PlanDraft | None:
     def safe(item) -> bool:
         if forbidden & item.allergens:
             return False
-        if veg and not item.vegetarian:
-            return False
-        return True
+        return not (veg and not item.vegetarian)
 
     foods = [f for f in catalog.by_category("food") if safe(f) and f.serves > 0]
     if not foods:

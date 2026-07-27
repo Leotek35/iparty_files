@@ -1,6 +1,7 @@
 """Regression tests from agentic loop iterations. Each test encodes a defect the
 critic found, so it can never silently return."""
 import asyncio
+import contextlib
 from datetime import date, timedelta
 
 import pytest
@@ -8,11 +9,11 @@ from fastapi.testclient import TestClient
 
 from iparty.api.app import create_app
 from iparty.orchestration.ttl_engine import TTLOrchestrator
-from iparty.pricing.catalog import StaticCatalog, parse_forbidden_allergens
 from iparty.planning.grounding import ground_draft
 from iparty.planning.models import PartyRequest, PlanDraft, ScheduleSlot, Selection
 from iparty.planning.planner import TTLPartyPlanner
 from iparty.planning.verifier import verify_plan
+from iparty.pricing.catalog import StaticCatalog, parse_forbidden_allergens
 
 CAT = StaticCatalog()
 
@@ -184,10 +185,8 @@ async def test_half_open_single_probe():
     await asyncio.sleep(0.04)
     hits["n"] = 0
     async def attempt():
-        try:
+        with contextlib.suppress(Exception):
             await cb.call(failing)
-        except Exception:
-            pass
     await asyncio.gather(*[attempt() for _ in range(20)])
     assert hits["n"] == 1  # exactly one probe reaches the provider
 

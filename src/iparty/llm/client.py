@@ -13,11 +13,10 @@ from typing import Protocol
 from ..core.config import settings
 from ..core.exceptions import MalformedPlanError
 from ..core.logging import get_logger
-from ..pricing.catalog import Catalog
 from ..planning.feasibility import cheapest_compliant_draft
-from ..pricing.catalog import parse_forbidden_allergens, requires_vegetarian
 from ..planning.models import PartyRequest, PlanDraft, Selection
 from ..planning.prompts import SYSTEM_PROMPT, build_user_prompt
+from ..pricing.catalog import Catalog, parse_forbidden_allergens, requires_vegetarian
 
 logger = get_logger("llm")
 
@@ -27,7 +26,7 @@ class LLMClient(Protocol):
 
     async def generate_draft(
         self, request: PartyRequest, catalog: Catalog,
-        temperature: float = 0.5, feedback: "str | None" = None,
+        temperature: float = 0.5, feedback: str | None = None,
     ) -> PlanDraft: ...
 
 
@@ -202,9 +201,9 @@ def _enrich_within_budget(base: PlanDraft, request, catalog) -> PlanDraft:
 
     # 4. big budgets: add premium catering when it is safe and fits
     cater = catalog.get("FD-CATER")
-    if cater and safe(cater) and total_of(d) < budget * 0.5:
-        if fits(cater.price_for(1, guests)):
-            d = d.model_copy(update={"food": list(d.food) + [Selection(sku=cater.sku, quantity=1)]})
+    if (cater and safe(cater) and total_of(d) < budget * 0.5
+            and fits(cater.price_for(1, guests))):
+        d = d.model_copy(update={"food": list(d.food) + [Selection(sku=cater.sku, quantity=1)]})
 
     return d
 

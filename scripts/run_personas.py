@@ -1,9 +1,11 @@
 """Run all 100 personas against the live app; emit per-user feedback + aggregate report."""
 from __future__ import annotations
+
 import collections
 import json
 import os
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -128,12 +130,12 @@ for p in PERSONAS:
             if first not in note_blob:
                 fb.append(("major", "DIET_SILENTLY_IGNORED", f"'{diet}' neither honored nor acknowledged — dangerous silence"))
         # honored-feature spot checks
-        if payload.get("start_time") == "18:00" and plan["schedule"]:
-            if plan["schedule"][0]["start"] < "18:00":
-                fb.append(("major", "START_TIME_IGNORED", "asked for 6pm, schedule starts earlier"))
-        if payload.get("special_requests"):
-            if payload["special_requests"].split(";")[0].strip() not in plan.get("notes", ""):
-                fb.append(("major", "SPECIAL_REQUEST_DROPPED", "special requests not acknowledged in plan"))
+        if (payload.get("start_time") == "18:00" and plan["schedule"]
+                and plan["schedule"][0]["start"] < "18:00"):
+            fb.append(("major", "START_TIME_IGNORED", "asked for 6pm, schedule starts earlier"))
+        if (payload.get("special_requests")
+                and payload["special_requests"].split(";")[0].strip() not in plan.get("notes", "")):
+            fb.append(("major", "SPECIAL_REQUEST_DROPPED", "special requests not acknowledged in plan"))
     # unmet feature desires
     for f in p["want_features"]:
         if f not in SUPPORTED_FEATURES:
@@ -165,5 +167,6 @@ print("\n--- issue frequency ---")
 for (sev, code), n in sorted(agg.items(), key=lambda kv: (sev_rank[kv[0][0]], -kv[1])):
     print(f"{sev:8s} {code:35s} x{n}")
 out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "persona_results.json")
-json.dump(results, open(out, "w"), indent=1)
+with open(out, "w") as fh:
+    json.dump(results, fh, indent=1)
 print("\nwrote", out)

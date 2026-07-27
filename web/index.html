@@ -521,21 +521,28 @@ function countUp(el, to, dur, fmtFn){
 // procedurally generated inline, so it works offline and within the CSP.
 const THEMES = [
   {k:["spider","spider-man","spiderman","web"], m:"web",     c1:"#C1121F", c2:"#14357A", ac:"#C1121F"},
-  {k:["frozen","ice","snow","winter","elsa","arctic","princess"], m:"snow", c1:"#2E6FA6", c2:"#4C93C4", ac:"#2E6FA6"},
-  {k:["space","galaxy","astronaut","rocket","planet","cosmic","moon","star wars","star"], m:"stars", c1:"#171B45", c2:"#4B349A", ac:"#6C5CE0"},
+  {k:["frozen","ice","snow","winter","elsa","arctic","polar","princess"], m:"snow", c1:"#2E6FA6", c2:"#4C93C4", ac:"#2E6FA6"},
+  {k:["space","galaxy","astronaut","rocket","planet","cosmic","moon","star wars","starry","star"], m:"stars", c1:"#171B45", c2:"#4B349A", ac:"#6C5CE0"},
   {k:["sea","ocean","mermaid","shark","fish","nautical","pirate","beach","water"], m:"waves", c1:"#0C6E77", c2:"#17968B", ac:"#0E7C86"},
-  {k:["dino","dinosaur","jungle","safari","animal","zoo","forest","explorer","wild"], m:"leaves", c1:"#2C7137", c2:"#4F8F34", ac:"#2F7D3A"},
+  {k:["dino","dinosaur","jurassic","t-rex","trex","jungle","safari","animal","zoo","forest","wilderness","wild"], m:"leaves", c1:"#2C7137", c2:"#4F8F34", ac:"#2F7D3A"},
   {k:["unicorn","rainbow","magic","fairy","pony","princess castle"], m:"confetti", c1:"#C43C93", c2:"#7B4DE0", ac:"#C43C93"},
-  {k:["superhero","hero","super","comic","avenger","marvel","dc"], m:"burst", c1:"#D22F3C", c2:"#E07A1E", ac:"#E63946"},
-  {k:["racing","race","car","cars","speed","formula","motor","track"], m:"checkers", c1:"#23262B", c2:"#454A52", ac:"#E63946"},
-  {k:["music","disco","dance","pop","neon","dj","concert"], m:"notes", c1:"#7A1FA2", c2:"#C33C5E", ac:"#B12FA0"},
+  {k:["superhero","hero","super","comic","avenger","marvel","batman","wonder woman","spidey","dc"], m:"burst", c1:"#D22F3C", c2:"#E07A1E", ac:"#E63946"},
+  {k:["racing","race","car","cars","speed","formula","motor","track","hot wheels","monster truck"], m:"checkers", c1:"#23262B", c2:"#454A52", ac:"#E63946"},
+  {k:["music","disco","dance","pop star","popstar","neon","dj","concert","karaoke","festival","band"], m:"notes", c1:"#7A1FA2", c2:"#C33C5E", ac:"#B12FA0"},
   {k:["love","valentine","heart","sweetheart"], m:"hearts", c1:"#C42B63", c2:"#E0608A", ac:"#D6336C"},
 ];
 const DEFAULT_THEME = {m:"confetti", c1:"#DC5731", c2:"#E0932E", ac:"#DC5731"};
 function themeFor(text){
+  // Longest keyword match wins, so a specific phrase ("pop star", "monster
+  // truck") beats a broad substring ("star", "car") regardless of table order.
   const t=(text||"").toLowerCase();
-  for(const th of THEMES){ if(th.k.some(w=>t.includes(w))) return th; }
-  return DEFAULT_THEME;
+  let best=null, bestLen=0;
+  for(const th of THEMES){
+    for(const w of th.k){
+      if(t.includes(w) && w.length>bestLen){ best=th; bestLen=w.length; }
+    }
+  }
+  return best || DEFAULT_THEME;
 }
 function hexA(hex,a){ return hex + Math.round(a*255).toString(16).padStart(2,"0"); }
 function motifSVG(m){

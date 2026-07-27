@@ -19,7 +19,7 @@ dev = [
     "pytest-asyncio>=0.23",
     "httpx>=0.27",
     "hypothesis>=6.100",
-    "ruff>=0.4",
+    "ruff>=0.14,<0.16",   # bounded: ruff default rules shift between minors
 ]
 
 [project.scripts]
@@ -40,3 +40,24 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 110
 target-version = "py310"
+
+# Rules are selected EXPLICITLY. Ruff's default rule set changes between
+# releases, so relying on it made CI fail after an unrelated ruff upgrade
+# (a green local run and a red CI run for identical code). Pinning the
+# selection here — plus a bounded ruff version in the dev extra — makes lint
+# reproducible.
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = [
+    # Party dates are local calendar dates, not instants: date.today() is the
+    # correct call and tz-aware datetimes would be wrong here (DTZ011).
+    "DTZ011",
+    # Blind `except Exception` is deliberate at orchestration boundaries; those
+    # sites are individually annotated with noqa where they occur.
+    "BLE001",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test helpers legitimately shadow builtins and use long inline fixtures.
+"tests/*" = ["E501"]
+"scripts/*" = ["E501"]

@@ -103,7 +103,8 @@ _ITEMS: list[CatalogItem] = [
     CatalogItem("ACT-TRIVIA", "activities", "Trivia & quiz night kit", "flat", 60.0, min_age=12),
     CatalogItem("ACT-PHOTO", "activities", "Photo booth rental (2 hr)", "flat", 200.0, min_age=5),
     CatalogItem("ACT-DJ", "activities", "DJ + sound system (3 hr)", "flat", 300.0, min_age=10),
-    CatalogItem("ACT-CHAR", "activities", "Costumed character visit (1 hr)", "flat", 175.0, min_age=2, max_age=10),
+    CatalogItem("ACT-CHAR", "activities", "Costumed character visit (1 hr)", "flat", 175.0,
+                min_age=2, max_age=10),
     CatalogItem("ACT-STEM", "activities", "Science experiments station", "flat", 110.0, min_age=5),
     CatalogItem("ACT-PHOTOG", "activities", "Event photographer (per hour)", "per_hour", 150.0),
     CatalogItem("ACT-BOUNCE", "activities", "Bounce house rental", "flat", 180.0, min_age=3, max_age=12),
@@ -130,7 +131,7 @@ class StaticCatalog:
         return [i for i in self._items if i.category == category]
 
 
-def load_catalog_csv(path: "str | Path") -> "StaticCatalog":
+def load_catalog_csv(path: str | Path) -> StaticCatalog:
     """Vendor onboarding without code: build a catalog from a CSV.
 
     Columns: sku,category,name,unit,unit_price,serves,allergens,vegetarian,

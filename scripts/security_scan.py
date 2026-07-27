@@ -32,9 +32,10 @@ def _plan(**o):
 
 
 # INJECTION
-r = c.post("/api/v1/plan", data='{"honoree_name":"K","honoree_age":7,"party_date":"%s",'
-           '"guest_count":12,"budget":NaN,"theme":"","dietary_restrictions":"","location_type":"home"}' % F,
-           headers={"Content-Type": "application/json"})
+r = c.post("/api/v1/plan", data=(
+    '{"honoree_name":"K","honoree_age":7,"party_date":"' + F + '",'
+    '"guest_count":12,"budget":NaN,"theme":"","dietary_restrictions":"","location_type":"home"}'),
+    headers={"Content-Type": "application/json"})
 rec("CRITICAL", "NaN budget crash (500 + stack leak)",
     f"budget=NaN -> HTTP {r.status_code}", r.status_code == 500)
 
@@ -45,7 +46,8 @@ if inj.status_code == 200:
 rec("CRITICAL", "Prompt injection defeats allergen safety",
     f"unsafe items served: {unsafe or 'none'}", bool(unsafe))
 
-html = open(os.path.join(os.path.dirname(__file__), "..", "web", "index.html")).read()
+with open(os.path.join(os.path.dirname(__file__), "..", "web", "index.html")) as _fh:
+    html = _fh.read()
 rec("HIGH", "DOM-XSS via echoed user fields",
     "web client escapes user input before innerHTML" if "function esc(" in html else "NO esc() in client",
     "function esc(" not in html)
@@ -55,6 +57,7 @@ rec("MEDIUM", "Oversized free-text body", f"5MB theme -> {_plan(theme='T'*5_000_
     _plan(theme="T" * 5_000_000).status_code != 422)
 
 import iparty.api.events as ev  # noqa: E402
+
 ev.MAX_EVENTS_GLOBAL, ev._global_count = 25, 0
 os.environ["EVENTS_PATH"] = "/tmp/scan_ev.jsonl"
 codes = [c.post("/api/v1/events", json={"session_id": f"session-{i:06d}", "event": "page_view", "meta": {}}).status_code

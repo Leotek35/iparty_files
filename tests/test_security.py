@@ -28,8 +28,8 @@ def _plan(**over):
 def test_nan_budget_returns_clean_422_not_500():
     """A crafted NaN once crashed the validation handler (500 + stack trace)."""
     r = client.post("/api/v1/plan", data=(
-        '{"honoree_name":"K","honoree_age":7,"party_date":"%s","guest_count":12,'
-        '"budget":NaN,"theme":"","dietary_restrictions":"","location_type":"home"}' % FUTURE),
+        '{"honoree_name":"K","honoree_age":7,"party_date":"@D@","guest_count":12,'
+        '"budget":NaN,"theme":"","dietary_restrictions":"","location_type":"home"}').replace("@D@", FUTURE),
         headers={"Content-Type": "application/json"})
     assert r.status_code == 422
     assert "Traceback" not in r.text and "iparty" not in r.text.lower()
@@ -37,8 +37,8 @@ def test_nan_budget_returns_clean_422_not_500():
 
 def test_infinity_budget_rejected():
     r = client.post("/api/v1/plan", data=(
-        '{"honoree_name":"K","honoree_age":7,"party_date":"%s","guest_count":12,'
-        '"budget":1e999,"theme":"","dietary_restrictions":"","location_type":"home"}' % FUTURE),
+        '{"honoree_name":"K","honoree_age":7,"party_date":"@D@","guest_count":12,'
+        '"budget":1e999,"theme":"","dietary_restrictions":"","location_type":"home"}').replace("@D@", FUTURE),
         headers={"Content-Type": "application/json"})
     assert r.status_code == 422
 
@@ -107,3 +107,46 @@ def test_security_headers_present():
 ])
 def test_static_mount_blocks_path_traversal(path):
     assert client.get(path).status_code == 404
+
+
+# ---------------- Theme engine (v1.4 dynamic theming) ----------------
+def _ui_html():
+    return Path(__file__).resolve().parents[1].joinpath("web/index.html").read_text()
+
+
+def test_theme_engine_never_interpolates_user_text_into_css_or_urls():
+    """The theme is free text. It must only SELECT from a hardcoded table —
+    user input must never reach a CSS value, url(), or data-URI."""
+    html = _ui_html()
+    # gradient + motif are built from table fields (th.c1/th.c2) and an
+    # encodeURIComponent'd inline SVG, never from the raw theme string.
+    assert "linear-gradient(140deg, ${th.c1}, ${th.c2})" in html
+    assert 'url("data:image/svg+xml,${encodeURIComponent(svg)}")' in html
+    # the raw input is never assigned into style
+    assert "style.background = `linear-gradient(140deg, ${text" not in html
+    assert "cssText" not in html
+
+
+def test_theme_table_colors_are_literal_hex_only():
+    """Every theme color shipped to CSS is a literal 6-digit hex in source."""
+    import re
+    html = _ui_html()
+    block = re.search(r"const THEMES = \[(.*?)\];", html, re.S).group(1)
+    colors = re.findall(r'(?:c1|c2|ac):\s*"([^"]+)"', block)
+    assert colors, "theme table should define colors"
+    for c in colors:
+        assert re.fullmatch(r"#[0-9A-Fa-f]{6}", c), c
+
+
+def test_theme_field_length_capped_server_side():
+    """A megabyte theme must be rejected, not rendered."""
+    assert _plan(theme="T" * 200_000).status_code == 422
+
+
+def test_xss_in_theme_is_escaped_before_render():
+    """Theme text is echoed back in the plan; the client must escape it."""
+    r = _plan(theme="<img src=x onerror=alert(1)>")
+    assert r.status_code == 200
+    html = _ui_html()
+    assert "${esc(p.theme)}" in html      # title render escapes
+    assert "function esc(" in html
