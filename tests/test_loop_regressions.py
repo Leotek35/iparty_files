@@ -210,8 +210,15 @@ async def test_request_deadline_bounds_latency():
 
 # ---- LOOP 4, UPGRADE 4: verifier feedback reaches the model ----
 @pytest.mark.asyncio
-async def test_verifier_feedback_is_passed_to_model():
+async def test_verifier_feedback_is_passed_to_model(monkeypatch):
+    from iparty.core.config import settings
     from iparty.llm.client import MockClient
+
+    # This test isolates the TTL verifier-guided repair loop. The JEPA bridge's
+    # preemptive prehint would otherwise seed the very first attempt with
+    # guidance (its intended speed win), so disable it here to assert the
+    # failure->feedback->repair path directly and deterministically.
+    monkeypatch.setattr(settings, "JEPA_BRIDGE_ENABLED", False)
 
     seen = {"feedback": None}
 
