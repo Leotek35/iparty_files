@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from iparty.api.app import app
-from iparty.pricing.catalog import StaticCatalog, unrecognized_restrictions, requires_vegetarian
+from iparty.pricing.catalog import StaticCatalog, requires_vegetarian, unrecognized_restrictions
 
 client = TestClient(app)
 FUTURE = (date.today() + timedelta(days=30)).isoformat()

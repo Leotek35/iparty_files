@@ -1,9 +1,8 @@
 """FastAPI application factory."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import math
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError

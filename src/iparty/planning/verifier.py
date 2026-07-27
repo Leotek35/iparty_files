@@ -7,8 +7,12 @@ profiles, not string tags), age-appropriateness, budget, scaling, and schedule.
 from __future__ import annotations
 
 from ..core.config import settings
-from ..pricing.catalog import (Catalog, parse_forbidden_allergens, requires_vegetarian,
-                               unrecognized_restrictions)
+from ..pricing.catalog import (
+    Catalog,
+    parse_forbidden_allergens,
+    requires_vegetarian,
+    unrecognized_restrictions,
+)
 from .models import PartyPlan, PartyRequest, VerificationReport, Violation
 
 

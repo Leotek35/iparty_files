@@ -52,7 +52,7 @@ class PlanDraft(BaseModel):
     food: list[Selection] = Field(default_factory=list)
     supplies: list[Selection] = Field(default_factory=list)
     activities: list[Selection] = Field(default_factory=list)
-    schedule: list["ScheduleSlot"] = Field(default_factory=list)
+    schedule: list[ScheduleSlot] = Field(default_factory=list)
     notes: str = ""
 
 

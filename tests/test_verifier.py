@@ -1,10 +1,10 @@
 from datetime import date, timedelta
 
-from iparty.pricing.catalog import StaticCatalog
 from iparty.planning.feasibility import cheapest_compliant_draft
 from iparty.planning.grounding import ground_draft
 from iparty.planning.models import PartyRequest
 from iparty.planning.verifier import verify_plan
+from iparty.pricing.catalog import StaticCatalog
 
 CAT = StaticCatalog()
 

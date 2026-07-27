@@ -5,6 +5,7 @@ expectations. `want_features` lists desires the current product may not support;
 every unmet one becomes structured feedback.
 """
 from __future__ import annotations
+
 from datetime import date, timedelta
 
 TODAY = date.today()
@@ -48,7 +49,7 @@ combos = [
     ("egg and soy and sesame allergies", ["egg", "soy", "sesame"], False, "Esme"),
     ("gluten-free and vegetarian", ["wheat"], True, "Gia"),
     ("shellfish and fish allergies, vegetarian preferred", ["shellfish", "fish"], True, "Sasha"),
-    ("peanut, tree nut, egg, milk, wheat, soy, fish, shellfish and sesame allergies", 
+    ("peanut, tree nut, egg, milk, wheat, soy, fish, shellfish and sesame allergies",
      ["peanut", "tree_nut", "egg", "milk", "wheat", "soy", "fish", "shellfish", "sesame"], False, "Max"),
 ]
 for j, (diet, allerg, veg, nm) in enumerate(combos, 13):

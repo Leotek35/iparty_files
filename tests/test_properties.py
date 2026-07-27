@@ -2,12 +2,13 @@
 problem by asserting invariants over RANDOM inputs the author never hand-picked."""
 from datetime import date, timedelta
 
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
-from iparty.pricing.catalog import ALLERGENS, StaticCatalog
 from iparty.planning.grounding import ground_draft
 from iparty.planning.models import PartyRequest, PlanDraft, ScheduleSlot, Selection
 from iparty.planning.verifier import verify_plan
+from iparty.pricing.catalog import ALLERGENS, StaticCatalog
 
 CAT = StaticCatalog()
 FOOD_SKUS = [i.sku for i in CAT.by_category("food")]

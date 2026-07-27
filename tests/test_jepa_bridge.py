@@ -5,10 +5,20 @@ from fastapi.testclient import TestClient
 
 from iparty.api.app import app
 from iparty.orchestration.jepa_bridge import (
-    HEADS, JepaAdvisor, OutcomePredictor, encode_plan, encode_request,
+    HEADS,
+    JepaAdvisor,
+    OutcomePredictor,
+    encode_plan,
+    encode_request,
 )
 from iparty.planning.models import (
-    LineItem, MenuItem, PartyPlan, PartyRequest, ScheduleSlot, VerificationReport, Violation,
+    LineItem,
+    MenuItem,
+    PartyPlan,
+    PartyRequest,
+    ScheduleSlot,
+    VerificationReport,
+    Violation,
 )
 from iparty.pricing.catalog import StaticCatalog
 

@@ -18,9 +18,10 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Awaitable, Callable, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from ..core.config import settings
 from ..core.exceptions import (
@@ -259,12 +260,12 @@ class TTLOrchestrator:
     async def run_verified(
         self,
         produce: Callable[[int], Awaitable[T]],
-        verify: Callable[[T], "tuple[bool, float, object]"],
+        verify: Callable[[T], tuple[bool, float, object]],
         n: int | None = None,
         consecutive_fail_limit: int | None = None,
         deadline_seconds: float | None = None,
         advisor: object | None = None,
-    ) -> "tuple[Candidate[T], Telemetry]":
+    ) -> tuple[Candidate[T], Telemetry]:
         n = n or settings.PLAN_CANDIDATES_N
         consecutive_fail_limit = consecutive_fail_limit or settings.CB_CONSECUTIVE_FAILS
         deadline = deadline_seconds or settings.REQUEST_DEADLINE_SECONDS
@@ -374,7 +375,7 @@ class TTLOrchestrator:
         return best, tel
 
 
-def _stamp_jepa(tel: "Telemetry", advisor: object | None) -> None:
+def _stamp_jepa(tel: Telemetry, advisor: object | None) -> None:
     """Copy the shared predictor's live self-assessment onto the telemetry so
     the UI can show how well the bridge is calibrated to this workload."""
     if advisor is None:

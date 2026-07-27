@@ -18,9 +18,9 @@ from ..core.exceptions import (
 from ..llm.client import build_client
 from ..orchestration.jepa_bridge import shared_predictor
 from ..orchestration.ttl_engine import TTLOrchestrator
-from ..pricing.catalog import StaticCatalog
 from ..planning.models import PartyRequest, PlanResult
 from ..planning.planner import TTLPartyPlanner
+from ..pricing.catalog import StaticCatalog
 
 router = APIRouter(tags=["planning"])
 

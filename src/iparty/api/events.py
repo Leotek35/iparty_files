@@ -57,7 +57,7 @@ EventName = Literal[
 ]
 
 # Whitelisted, non-identifying metadata keys and their allowed values.
-_ALLOWED_META: dict[str, "set[str] | None"] = {
+_ALLOWED_META: dict[str, set[str] | None] = {
     "status": None,                       # http status as string
     "has_diet": {"true", "false"},        # whether dietary restrictions were entered
     "guests_band": {"1-10", "11-25", "26-60", "61+"},
@@ -150,7 +150,7 @@ async def events_summary() -> dict:
     def n(name: str) -> int:
         return len(by_event.get(name, set()))
 
-    def rate(a: int, b: int) -> "float | None":
+    def rate(a: int, b: int) -> float | None:
         return round(a / b, 3) if b else None
 
     verified = n("plan_verified")

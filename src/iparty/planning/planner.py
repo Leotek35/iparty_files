@@ -14,10 +14,10 @@ Two orchestration upgrades from Loop 4:
 """
 from __future__ import annotations
 
+from ..core.config import settings
 from ..core.exceptions import NoValidPlanError
 from ..core.logging import get_logger
 from ..llm.client import LLMClient
-from ..core.config import settings
 from ..orchestration.jepa_bridge import JepaAdvisor
 from ..orchestration.ttl_engine import TTLOrchestrator
 from ..pricing.catalog import Catalog, unrecognized_restrictions
