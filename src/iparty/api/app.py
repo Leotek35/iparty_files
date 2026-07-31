@@ -25,11 +25,19 @@ def create_app() -> FastAPI:
     app.include_router(events_router, prefix="/api/v1")
 
     @app.middleware("http")
-    async def security_headers(request, call_next):  # noqa: ANN001, ANN202
+    async def security_headers(request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Inline <style>/<script> in the single-file UI require 'unsafe-inline';
+        # everything else is locked to same-origin. object/base/frame denied.
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+            "connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+        )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
     @app.get("/health")

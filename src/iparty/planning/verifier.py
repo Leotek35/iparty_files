@@ -7,7 +7,12 @@ profiles, not string tags), age-appropriateness, budget, scaling, and schedule.
 from __future__ import annotations
 
 from ..core.config import settings
-from ..pricing.catalog import Catalog, parse_forbidden_allergens, requires_vegetarian
+from ..pricing.catalog import (
+    Catalog,
+    parse_forbidden_allergens,
+    requires_vegetarian,
+    unverifiable_dietary,
+)
 from .models import PartyPlan, PartyRequest, VerificationReport, Violation
 
 
@@ -88,6 +93,12 @@ def verify_plan(plan: PartyPlan, request: PartyRequest, catalog: Catalog) -> Ver
         capacity += request.guest_count if item.unit == "per_person" else item.serves * li.quantity
     check(capacity >= request.guest_count, "SUPPLIES_UNDERSCALED", "error",
           f"Supplies cover {capacity} place settings but {request.guest_count} guests are coming.")
+
+    # 6c. Dietary recognition — never imply we honored a need we cannot verify.
+    unverifiable = unverifiable_dietary(request.dietary_restrictions)
+    check(unverifiable is None, "DIETARY_UNVERIFIABLE", "error",
+          f"We can't yet verify the dietary need '{unverifiable}', so we won't imply "
+          f"this plan is safe for it." if unverifiable else "")
 
     # 7. ALLERGEN SAFETY — real check against catalog allergen profiles.
     forbidden = parse_forbidden_allergens(request.dietary_restrictions)

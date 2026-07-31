@@ -25,13 +25,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from iparty.core.config import settings  # noqa: E402
-from iparty.core.exceptions import NoValidPlanError  # noqa: E402
-from iparty.llm.client import build_client  # noqa: E402
-from iparty.orchestration.ttl_engine import TTLOrchestrator  # noqa: E402
-from iparty.planning.models import PartyRequest  # noqa: E402
-from iparty.planning.planner import TTLPartyPlanner  # noqa: E402
-from iparty.pricing.catalog import StaticCatalog  # noqa: E402
+from iparty.core.config import settings
+from iparty.core.exceptions import NoValidPlanError
+from iparty.llm.client import build_client
+from iparty.orchestration.ttl_engine import TTLOrchestrator
+from iparty.planning.models import PartyRequest
+from iparty.planning.planner import TTLPartyPlanner
+from iparty.pricing.catalog import StaticCatalog
 
 DIETS = ["", "", "", "nut allergy", "gluten-free", "vegan", "dairy-free", "egg allergy"]
 THEMES = ["Dinosaurs", "Space", "Under the Sea", "Superheroes", "Princess", "Soccer", ""]

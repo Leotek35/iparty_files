@@ -116,7 +116,7 @@ class StaticCatalog:
         return [i for i in self._items if i.category == category]
 
 
-def load_catalog_csv(path: "str | Path") -> "StaticCatalog":
+def load_catalog_csv(path: str | Path) -> StaticCatalog:
     """Vendor onboarding without code: build a catalog from a CSV.
 
     Columns: sku,category,name,unit,unit_price,serves,allergens,vegetarian,
@@ -157,7 +157,7 @@ def load_catalog_csv(path: "str | Path") -> "StaticCatalog":
 # Map free-text dietary restrictions to allergens that MUST be excluded.
 _RESTRICTION_TO_ALLERGENS = {
     "nut": {"peanut", "tree_nut"}, "peanut": {"peanut"}, "tree nut": {"tree_nut"},
-    "gluten": {"wheat"}, "wheat": {"wheat"}, "celiac": {"wheat"},
+    "gluten": {"wheat"}, "wheat": {"wheat"}, "celiac": {"wheat"}, "coeliac": {"wheat"},
     "dairy": {"milk"}, "milk": {"milk"}, "lactose": {"milk"},
     "egg": {"egg"}, "soy": {"soy"}, "fish": {"fish"}, "shellfish": {"shellfish"},
     "sesame": {"sesame"},
@@ -176,6 +176,23 @@ def parse_forbidden_allergens(restrictions: str) -> set[str]:
     if "vegan" in text:
         forbidden |= {"milk", "egg", "fish", "shellfish"}
     return forbidden
+
+
+# Needs we can name but cannot yet verify (no certification/pork data in catalog).
+_UNVERIFIABLE_TOKENS = ("halal", "kosher", "pork", "pescatarian", "keto", "paleo")
+
+
+def unverifiable_dietary(restrictions: str) -> str | None:
+    """Return the restriction text if the user expressed a dietary need we do NOT
+    understand or cannot verify — so the app can fail closed instead of silently
+    shipping a plan that appears 'checked'. Returns None when the need is empty,
+    or fully handled (allergen and/or vegetarian)."""
+    text = (restrictions or "").strip()
+    if not text:
+        return None
+    if parse_forbidden_allergens(text) or requires_vegetarian(text):
+        return None
+    return text
 
 
 def requires_vegetarian(restrictions: str) -> bool:

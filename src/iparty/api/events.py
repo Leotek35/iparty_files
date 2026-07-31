@@ -19,8 +19,11 @@ import time
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
+
+from ..core.config import settings
+from ..core.ratelimit import client_key, limiter
 
 router = APIRouter(tags=["events"])
 
@@ -50,7 +53,7 @@ EventName = Literal[
 ]
 
 # Whitelisted, non-identifying metadata keys and their allowed values.
-_ALLOWED_META: dict[str, "set[str] | None"] = {
+_ALLOWED_META: dict[str, set[str] | None] = {
     "status": None,                       # http status as string
     "has_diet": {"true", "false"},        # whether dietary restrictions were entered
     "guests_band": {"1-10", "11-25", "26-60", "61+"},
@@ -81,7 +84,10 @@ class Event(BaseModel):
 
 
 @router.post("/events", status_code=204)
-async def record_event(event: Event) -> None:
+async def record_event(event: Event, http: Request) -> None:
+    # Per-IP rate limit bounds a distributed flood across many session_ids.
+    if not limiter.allow(f"ev:{client_key(http)}", settings.EVENTS_RATE_PER_MIN, burst=40):
+        raise HTTPException(status_code=429, detail="event rate exceeded")
     count = _session_counts.get(event.session_id, 0)
     if count >= MAX_EVENTS_PER_SESSION:
         raise HTTPException(status_code=429, detail="event limit reached for this session")
@@ -95,6 +101,8 @@ async def record_event(event: Event) -> None:
     path = _events_path()
     async with _write_lock:
         path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists() and path.stat().st_size >= settings.EVENTS_MAX_BYTES:
+            raise HTTPException(status_code=429, detail="event log full; retention limit reached")
         with path.open("a", encoding="utf-8") as f:
             f.write(line)
 
@@ -117,7 +125,9 @@ def _load_events() -> list[dict]:
 
 
 @router.get("/events/summary")
-async def events_summary() -> dict:
+async def events_summary(x_metrics_token: str | None = Header(default=None)) -> dict:
+    if settings.METRICS_TOKEN and x_metrics_token != settings.METRICS_TOKEN:
+        raise HTTPException(status_code=401, detail="summary requires a valid token")
     events = _load_events()
     by_event: dict[str, set] = {}
     feedback = {"yes": 0, "maybe": 0, "no": 0}
@@ -134,7 +144,7 @@ async def events_summary() -> dict:
     def n(name: str) -> int:
         return len(by_event.get(name, set()))
 
-    def rate(a: int, b: int) -> "float | None":
+    def rate(a: int, b: int) -> float | None:
         return round(a / b, 3) if b else None
 
     verified = n("plan_verified")

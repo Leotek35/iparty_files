@@ -30,7 +30,7 @@ def test_esc_helper_exists():
 def test_no_unescaped_user_strings_in_html_sinks():
     html_sinks = {"renderPass", "renderInfeasible", "verifyingSkeleton",
                   "checklistFor", "renderTelemetry", "renderUnavailable"}
-    raw = [m for m in re.finditer(r"\$\{(?:%s)\}" % USER_STRINGS, JS)
+    raw = [m for m in re.finditer(r"\$\{(?:" + USER_STRINGS + r")\}", JS)
            if _owner_function(m.start()) in html_sinks]
     assert not raw, f"unescaped user strings in HTML sinks: {len(raw)}"
 
@@ -38,7 +38,7 @@ def test_no_unescaped_user_strings_in_html_sinks():
 def test_no_overclaims_in_copy():
     banned = [r"guarantee[sd]?\s+(the\s+)?(party|safe|safety|allergen)",
               r"100%\s*safe", r"allerg\w*[-\s]free\b", r"\breal catalog\b", r"medical"]
-    hits = [m.group(0) for pat in banned for m in re.finditer(pat, HTML, re.I)]
+    hits = [m.group(0) for pat in banned for m in re.finditer(pat, HTML, re.IGNORECASE)]
     assert not hits, hits
 
 

@@ -18,9 +18,10 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Awaitable, Callable, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from ..core.config import settings
 from ..core.exceptions import (
@@ -88,7 +89,7 @@ class CircuitBreaker:
             self._probe_in_flight = True
         try:
             result = await func(*args, **kwargs)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self._on_failure(exc)
             raise
         self._on_success()
@@ -244,11 +245,11 @@ class TTLOrchestrator:
     async def run_verified(
         self,
         produce: Callable[[int], Awaitable[T]],
-        verify: Callable[[T], "tuple[bool, float, object]"],
+        verify: Callable[[T], tuple[bool, float, object]],
         n: int | None = None,
         consecutive_fail_limit: int | None = None,
         deadline_seconds: float | None = None,
-    ) -> "tuple[Candidate[T], Telemetry]":
+    ) -> tuple[Candidate[T], Telemetry]:
         n = n or settings.PLAN_CANDIDATES_N
         consecutive_fail_limit = consecutive_fail_limit or settings.CB_CONSECUTIVE_FAILS
         deadline = deadline_seconds or settings.REQUEST_DEADLINE_SECONDS

@@ -2,10 +2,10 @@
 attacks that broke the previous version, so they can never silently regress."""
 from datetime import date, timedelta
 
-from iparty.pricing.catalog import StaticCatalog
 from iparty.planning.grounding import ground_draft
 from iparty.planning.models import PartyRequest, PlanDraft, ScheduleSlot, Selection
 from iparty.planning.verifier import verify_plan
+from iparty.pricing.catalog import StaticCatalog
 
 CAT = StaticCatalog()
 

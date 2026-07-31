@@ -13,10 +13,10 @@ from typing import Protocol
 from ..core.config import settings
 from ..core.exceptions import MalformedPlanError
 from ..core.logging import get_logger
-from ..pricing.catalog import Catalog
 from ..planning.feasibility import cheapest_compliant_draft
 from ..planning.models import PartyRequest, PlanDraft, Selection
 from ..planning.prompts import SYSTEM_PROMPT, build_user_prompt
+from ..pricing.catalog import Catalog
 
 logger = get_logger("llm")
 
@@ -26,7 +26,7 @@ class LLMClient(Protocol):
 
     async def generate_draft(
         self, request: PartyRequest, catalog: Catalog,
-        temperature: float = 0.5, feedback: "str | None" = None,
+        temperature: float = 0.5, feedback: str | None = None,
     ) -> PlanDraft: ...
 
 
@@ -36,7 +36,7 @@ def _parse_draft_json(text: str) -> PlanDraft:
         raise MalformedPlanError("no JSON object found in model output")
     try:
         return PlanDraft.model_validate(json.loads(match.group(0)))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise MalformedPlanError(f"could not parse draft: {exc}") from exc
 
 

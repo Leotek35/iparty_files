@@ -4,12 +4,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from iparty.api.app import create_app
+from iparty.core.exceptions import NoValidPlanError
 from iparty.llm.client import MockClient
 from iparty.orchestration.ttl_engine import TTLOrchestrator
-from iparty.pricing.catalog import StaticCatalog
 from iparty.planning.models import PartyRequest
 from iparty.planning.planner import TTLPartyPlanner
-from iparty.core.exceptions import NoValidPlanError
+from iparty.pricing.catalog import StaticCatalog
 
 CAT = StaticCatalog()
 

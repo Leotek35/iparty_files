@@ -18,7 +18,7 @@ from ..core.exceptions import NoValidPlanError
 from ..core.logging import get_logger
 from ..llm.client import LLMClient
 from ..orchestration.ttl_engine import TTLOrchestrator
-from ..pricing.catalog import Catalog
+from ..pricing.catalog import Catalog, unverifiable_dietary
 from .feasibility import minimum_feasible_budget
 from .grounding import ground_draft
 from .models import PartyRequest, PlanResult
@@ -34,6 +34,20 @@ class TTLPartyPlanner:
         self.orchestrator = orchestrator
 
     async def plan(self, request: PartyRequest) -> PlanResult:
+        # ---- 0. Dietary-recognition precheck: fail closed, 0 LLM calls ----
+        unverifiable = unverifiable_dietary(request.dietary_restrictions)
+        if unverifiable is not None:
+            raise NoValidPlanError(
+                message=f"We can't yet verify '{unverifiable}'.",
+                violations=[{"code": "DIETARY_UNVERIFIABLE", "severity": "error",
+                             "message": f"iParty doesn't yet verify '{unverifiable}'. Rather than "
+                                        f"imply a plan is safe when we haven't checked it, we're "
+                                        f"telling you plainly. Support for this is on our roadmap."}],
+                minimum_feasible_budget=minimum_feasible_budget(request, self.catalog),
+                telemetry={"llm_calls": 0,
+                           "pattern_log": ["dietary precheck: unverifiable need, refused (0 calls)"]},
+            )
+
         # ---- 1. Feasibility precheck: refuse impossible requests for free ----
         min_budget = minimum_feasible_budget(request, self.catalog)
         if min_budget is None:

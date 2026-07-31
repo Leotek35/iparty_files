@@ -513,7 +513,14 @@ function renderPass(data, req){
 
 function renderInfeasible(detail, req){
   const min = detail.minimum_feasible_budget;
+  const codes = (detail.violations||[]).map(v=>v.code);
+  const dietary = codes.includes("DIETARY_UNVERIFIABLE");
   const binding = (detail.violations||[]).map(v=>`<div>${esc(v.message)}</div>`).join("");
+  const headline = dietary ? "We can't verify that yet — so we won't pretend."
+                           : "This one can't be done — honestly.";
+  const why = dietary
+    ? "You told us about a dietary need we don't yet check against our catalog. Rather than hand you a plan that looks safe when we haven't verified it, we're telling you straight. Support for this is on our roadmap."
+    : "We checked every combination in the catalog. Nothing satisfies all of these constraints, so we won't show a plan that pretends to.";
   $("result").innerHTML = `
   <article class="card refusal" style="animation:heroIn .6s var(--spring) both">
     <div class="halt">
@@ -522,9 +529,9 @@ function renderInfeasible(detail, req){
         <circle cx="12" cy="12" r="9.2"/>
       </svg>
     </div>
-    <h2 class="display">This one can't be done — honestly.</h2>
-    <p class="why">We checked every combination in the catalog. Nothing satisfies all of these constraints, so we won't show a plan that pretends to.</p>
-    ${min?`<div class="min"><div class="n mono display">$${min.toFixed(0)}</div><div class="l">is where a workable party for ${req.guest_count} guests starts</div></div>`:""}
+    <h2 class="display">${headline}</h2>
+    <p class="why">${why}</p>
+    ${(!dietary && min)?`<div class="min"><div class="n mono display">$${min.toFixed(0)}</div><div class="l">is where a workable party for ${req.guest_count} guests starts</div></div>`:""}
     ${binding?`<div class="binding">${binding}</div>`:""}
   </article>`;
 }

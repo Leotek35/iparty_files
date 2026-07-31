@@ -8,11 +8,11 @@ from fastapi.testclient import TestClient
 
 from iparty.api.app import create_app
 from iparty.orchestration.ttl_engine import TTLOrchestrator
-from iparty.pricing.catalog import StaticCatalog, parse_forbidden_allergens
 from iparty.planning.grounding import ground_draft
 from iparty.planning.models import PartyRequest, PlanDraft, ScheduleSlot, Selection
 from iparty.planning.planner import TTLPartyPlanner
 from iparty.planning.verifier import verify_plan
+from iparty.pricing.catalog import StaticCatalog, parse_forbidden_allergens
 
 CAT = StaticCatalog()
 
@@ -105,6 +105,7 @@ async def test_dead_provider_yields_clean_exhaustion():
 
     class DeadLLM:
         name = "dead"
+
         async def generate_draft(self, *a, **k):
             raise RuntimeError("provider down")
 

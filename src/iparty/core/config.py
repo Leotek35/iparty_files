@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     BUDGET_TOLERANCE: float = Field(default=0.0, ge=0, le=0.25)
     BUDGET_FLOOR_FRACTION: float = Field(default=0.25, ge=0, le=1)
 
+    # Abuse / cost controls
+    PLAN_RATE_PER_MIN: int = Field(default=20, ge=1)
+    EVENTS_RATE_PER_MIN: int = Field(default=120, ge=1)
+    EVENTS_MAX_BYTES: int = Field(default=25_000_000, ge=100_000)  # hard disk ceiling
+    METRICS_TOKEN: str | None = None   # if set, /metrics + /events/summary require it
+
     HOST: str = "0.0.0.0"
     PORT: int = Field(default=8000, ge=1, le=65535)
 
