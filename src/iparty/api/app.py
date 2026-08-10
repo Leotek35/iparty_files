@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..core.config import settings
+from .bookings import router as bookings_router
 from .events import router as events_router
 from .routes import router
 
@@ -23,6 +24,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(router, prefix="/api/v1")
     app.include_router(events_router, prefix="/api/v1")
+    app.include_router(bookings_router, prefix="/api/v1")
 
     @app.middleware("http")
     async def security_headers(request, call_next):
