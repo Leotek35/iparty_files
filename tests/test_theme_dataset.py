@@ -109,3 +109,38 @@ def test_no_keyword_is_token_subset_collision():
 def test_ui_loads_dataset_with_validation():
     assert "/static/themes.json" in JS
     assert "const HEX_RE" in JS and "function sanitizeTheme" in JS
+
+
+# ---------- v3 scenes ----------
+
+FX_ALLOWED = {"snow", "confetti", "hearts", "pixels", "bubbles", "balloons",
+              "stars", "sparkles", "clouds", "leaves", "notes", "none"}
+
+
+def test_every_theme_has_a_valid_scene():
+    for t in THEMES:
+        assert isinstance(t.get("sky"), list) and len(t["sky"]) == 2, t["id"]
+        for h in t["sky"]:
+            assert HEX.match(h), f"{t['id']} sky {h!r}"
+        assert t.get("fx") in FX_ALLOWED, f"{t['id']} fx {t.get('fx')!r}"
+
+
+def test_fx_names_resolve_to_motifs():
+    js_motifs = set(re.findall(r"^\s{4}(\w+):\[S\+", JS, re.MULTILINE))
+    for t in THEMES:
+        if t["fx"] != "none":
+            assert t["fx"] in js_motifs, f"{t['id']} fx {t['fx']!r} has no procedural SVG"
+
+
+def test_dark_skies_get_reduced_alpha_for_readability():
+    # Engine must dim dark skies (space/neon) so ink stays readable; the JS
+    # branches on luminance. Mirror check: at least one theme has a dark sky,
+    # and the luminance branch exists in the engine.
+    assert any(_lum(t["sky"][0]) < 0.28 for t in THEMES)
+    assert "hexLum" in JS and "0.28" in JS
+
+
+def test_scene_layers_wired_in_ui():
+    for marker in ['id="amb-sky"', 'id="amb-fx"', "FX_ANIM", "fxFall", "fxRise",
+                   "fxTwinkle", "fxSway"]:
+        assert marker in HTML, f"scene engine lost: {marker}"
