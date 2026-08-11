@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..core.config import settings
 from ..core.ratelimit import client_key, limiter
+from .bookings import normalize_phone, reject_email_typos
 
 router = APIRouter(tags=["vendors"])
 
@@ -35,9 +36,15 @@ class VendorLead(BaseModel):
 
     business_name: str = Field(..., min_length=2, max_length=120)
     contact_email: str = Field(..., min_length=6, max_length=100)
+    contact_phone: str = Field(default="", max_length=25)
     category: Literal["venue", "food", "cake", "supplies", "activities", "entertainment", "other"]
     city: str = Field(default="", max_length=80)
     notes: str = Field(default="", max_length=300)
+
+    @field_validator("contact_phone")
+    @classmethod
+    def phone_shape(cls, v: str) -> str:
+        return normalize_phone(v)
 
     @field_validator("contact_email")
     @classmethod
@@ -66,6 +73,7 @@ def create_vendor_lead(req: VendorLead, http: Request) -> dict:
             "error": "rate_limited",
             "message": "Too many vendor submissions; please slow down.",
         })
+    reject_email_typos(req.contact_email)
     with _lock:
         if req.contact_email in _emails:
             # Idempotent by email: resubmission is a friendly no-op, not a dup row.
@@ -78,6 +86,7 @@ def create_vendor_lead(req: VendorLead, http: Request) -> dict:
             "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "business_name": req.business_name,
             "contact_email": req.contact_email,
+            "contact_phone": req.contact_phone,
             "category": req.category,
             "city": req.city,
             "notes": req.notes,

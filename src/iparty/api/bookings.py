@@ -19,12 +19,34 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..core.config import settings
+from ..core.emailcheck import suggest_email
 from ..core.ratelimit import client_key, limiter
 
 router = APIRouter(tags=["bookings"])
 
 _SESSION_RE = r"^[A-Za-z0-9\-]+$"
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
+_PHONE_RE = re.compile(r"^\+?\d{7,15}$")
+
+
+def normalize_phone(v: str) -> str:
+    """Optional phone: strip separators, then require +?7-15 digits."""
+    if not v.strip():
+        return ""
+    cleaned = re.sub(r"[\s().\-]", "", v)
+    if not _PHONE_RE.match(cleaned):
+        raise ValueError("contact_phone must be 7-15 digits, optionally starting with +")
+    return cleaned
+
+
+def reject_email_typos(email: str) -> None:
+    sug = suggest_email(email)
+    if sug:
+        raise HTTPException(status_code=422, detail={
+            "error": "email_typo",
+            "message": f"That email domain looks like a typo. Did you mean {sug}?",
+            "did_you_mean": sug,
+        })
 
 _lock = threading.Lock()
 _by_session: dict[str, int] = {}
@@ -50,8 +72,14 @@ class BookingRequest(BaseModel):
     session_id: str = Field(..., min_length=8, max_length=64, pattern=_SESSION_RE)
     name: str = Field(..., min_length=1, max_length=100)
     contact_email: str = Field(..., min_length=6, max_length=100)
+    contact_phone: str = Field(default="", max_length=25)
     notes: str = Field(default="", max_length=300)
     party: BookingParty
+
+    @field_validator("contact_phone")
+    @classmethod
+    def phone_shape(cls, v: str) -> str:
+        return normalize_phone(v)
 
     @field_validator("contact_email")
     @classmethod
@@ -88,6 +116,7 @@ def create_booking(req: BookingRequest, http: Request) -> dict:
             "error": "rate_limited",
             "message": "Too many booking requests; please slow down.",
         })
+    reject_email_typos(req.contact_email)
     global _total, _gbv
     with _lock:
         used = _by_session.get(req.session_id, 0)
@@ -107,6 +136,7 @@ def create_booking(req: BookingRequest, http: Request) -> dict:
             "session_id": req.session_id,
             "name": req.name,
             "contact_email": req.contact_email,
+            "contact_phone": req.contact_phone,
             "notes": req.notes,
             "party": json.loads(req.party.model_dump_json()),
         }
