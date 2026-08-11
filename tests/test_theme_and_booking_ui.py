@@ -89,6 +89,13 @@ def test_booking_sinks_escaped():
         assert allowed.match(m.group(1).strip()), f"unescaped modal sink: {m.group(1)!r}"
 
 
+def test_booking_modal_a11y():
+    # Triage A11Y-1: dialog semantics + focus restoration on close.
+    seg = _booking_segment()
+    assert 'role="dialog"' in seg and 'aria-modal="true"' in seg
+    assert "opener.focus()" in seg
+
+
 def test_booking_error_paths_handled():
     for code in ["429", "422"]:
         assert code in _booking_segment(), f"no UX for HTTP {code}"

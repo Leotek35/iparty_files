@@ -78,6 +78,34 @@ def test_longest_keyword_wins_in_engine():
     assert "bestLen" in JS and "w.length>bestLen" in JS
 
 
+def test_engine_matches_on_token_boundaries():
+    # Triage TH-1: 'star' must not match 'starter'. The engine normalises both
+    # sides to space-delimited tokens instead of raw substring search.
+    assert "function normTokens" in JS
+    assert 'normTokens(text)' in JS
+
+
+def test_no_keyword_is_token_subset_collision():
+    """Mirror of the JS token matcher: no single-token keyword may equal a
+    token of another theme's keyword phrase (would make matches order-dependent)."""
+    def tokens(s):
+        return re.sub(r"[^a-z0-9]+", " ", s.lower()).split()
+    singles = {}
+    for t in THEMES:
+        for w in t["keywords"]:
+            tk = tokens(w)
+            if len(tk) == 1:
+                singles.setdefault(tk[0], t["id"])
+    for t in THEMES:
+        for w in t["keywords"]:
+            tk = tokens(w)
+            if len(tk) > 1:
+                for tok in tk:
+                    owner = singles.get(tok)
+                    assert owner is None or owner == t["id"] or len(" ".join(tk)) > len(tok), \
+                        f"{t['id']}:{w!r} shadowed by single keyword {tok!r} of {owner}"
+
+
 def test_ui_loads_dataset_with_validation():
     assert "/static/themes.json" in JS
     assert "const HEX_RE" in JS and "function sanitizeTheme" in JS

@@ -16,5 +16,6 @@ def _isolate_rate_limits():
     limiter._buckets.clear()
     settings.PLAN_RATE_PER_MIN = 100_000
     settings.EVENTS_RATE_PER_MIN = 100_000
+    settings.BOOKINGS_RATE_PER_MIN = 100_000
     yield
     limiter._buckets.clear()

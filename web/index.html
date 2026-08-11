@@ -428,12 +428,16 @@ fetch("/static/themes.json").then(r=>r.json()).then(d=>{
   THEME_DATA = (d.themes||[]).map(sanitizeTheme).filter(Boolean);
   applyAmbient($("theme").value);
 }).catch(()=>{});
+// Token-boundary matching: 'star' must match 'star wars' but never 'starter'.
+// Both sides are normalised to space-delimited alphanumeric tokens, so there
+// is no regex construction from user input (triage finding TH-1).
+function normTokens(s){ return " "+String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()+" "; }
 function themeFor(text){
-  const t=(text||"").toLowerCase();
+  const t = normTokens(text);
   let best=null, bestLen=0;
   for(const th of THEME_DATA){
     for(const w of th.k){
-      if(w.length>bestLen && t.includes(w)){ best=th; bestLen=w.length; }
+      if(w.length>bestLen && t.includes(" "+normTokens(w).trim()+" ")){ best=th; bestLen=w.length; }
     }
   }
   return best || DEFAULT_THEME;
@@ -676,10 +680,11 @@ function renderPass(data, req){
 function openBooking(p, req){
   track("booking_interest");
   const th = CURRENT_THEME;
+  const opener = document.activeElement;
   const scrim = document.createElement("div");
   scrim.className = "modal-scrim"; scrim.id = "book-modal";
   scrim.innerHTML = `
-  <div class="modal-wrap">
+  <div class="modal-wrap" role="dialog" aria-modal="true" aria-label="Book this party">
     <div class="modal">
       <div class="m-head">
         <h3 class="display">Book this party</h3>
@@ -698,7 +703,7 @@ function openBooking(p, req){
     <button class="m-close" id="bk-close" aria-label="Close">✕</button>
   </div>`;
   document.body.appendChild(scrim);
-  const close = ()=>scrim.remove();
+  const close = ()=>{ scrim.remove(); if(opener && opener.isConnected) opener.focus(); };
   $("bk-close").addEventListener("click", close);
   scrim.addEventListener("click",(e)=>{ if(e.target===scrim) close(); });
   document.addEventListener("keydown", function onEsc(e){ if(e.key==="Escape"){ close(); document.removeEventListener("keydown", onEsc);} });

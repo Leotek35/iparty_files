@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     # Bookings
     BOOKINGS_PATH: str = "data/bookings.jsonl"
     BOOKINGS_MAX_PER_SESSION: int = Field(default=3, ge=1, le=50)
+    BOOKINGS_RATE_PER_MIN: int = Field(default=10, ge=1)
     EVENTS_MAX_BYTES: int = Field(default=25_000_000, ge=100_000)  # hard disk ceiling
     METRICS_TOKEN: str | None = None   # if set, /metrics + /events/summary require it
 

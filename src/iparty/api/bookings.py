@@ -15,10 +15,11 @@ import uuid
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..core.config import settings
+from ..core.ratelimit import client_key, limiter
 
 router = APIRouter(tags=["bookings"])
 
@@ -76,7 +77,16 @@ def _max_per_session() -> int:
 
 
 @router.post("/bookings", status_code=201)
-async def create_booking(req: BookingRequest) -> dict:
+def create_booking(req: BookingRequest, http: Request) -> dict:
+    # Sync handler by design: FastAPI runs it in the threadpool, so the JSONL
+    # append never blocks the event loop (triage finding BK-2).
+    # Per-client rate limit closes the rotating-session_id disk-DoS hole that
+    # the per-session cap alone leaves open (triage finding BK-1).
+    if not limiter.allow(f"bk:{client_key(http)}", settings.BOOKINGS_RATE_PER_MIN, burst=5):
+        raise HTTPException(status_code=429, detail={
+            "error": "rate_limited",
+            "message": "Too many booking requests; please slow down.",
+        })
     global _total
     with _lock:
         used = _by_session.get(req.session_id, 0)
@@ -105,7 +115,7 @@ async def create_booking(req: BookingRequest) -> dict:
 
 
 @router.get("/bookings/summary")
-async def bookings_summary() -> dict:
+def bookings_summary() -> dict:
     """Counts only — no PII ever leaves this endpoint."""
     with _lock:
         return {"total_bookings": _total, "unique_sessions": len(_by_session)}

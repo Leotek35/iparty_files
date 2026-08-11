@@ -151,3 +151,20 @@ def test_security_headers_on_bookings(client):
     r = client.post("/api/v1/bookings", json=good_body())
     assert r.headers["X-Content-Type-Options"] == "nosniff"
     assert "content-security-policy" in {k.lower() for k in r.headers}
+
+
+def test_rotating_session_ids_hit_client_rate_limit(client):
+    """Triage BK-1: per-session caps alone allow disk-DoS via fresh session
+    IDs; the per-client token bucket must close that hole."""
+    from iparty.core.ratelimit import limiter
+    limiter._buckets.clear()
+    settings.BOOKINGS_RATE_PER_MIN = 1  # burst=5 in code
+    try:
+        codes = [client.post("/api/v1/bookings",
+                             json=good_body(session=f"sess-rotate-{i:04d}")).status_code
+                 for i in range(12)]
+        assert 429 in codes, "rotating session_ids must not bypass throttling"
+        assert codes[0] == 201
+    finally:
+        settings.BOOKINGS_RATE_PER_MIN = 100_000
+        limiter._buckets.clear()
