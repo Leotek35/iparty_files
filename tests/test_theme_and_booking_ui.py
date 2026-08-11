@@ -14,8 +14,8 @@ JS = re.search(r"<script>(.*)</script>", HTML, re.DOTALL).group(1)
 # ---------- theme engine presence & wiring ----------
 
 def test_theme_engine_core_present():
-    for marker in ["const THEMES", "function themeFor", "function motifSVG",
-                   "function applyAmbient", "function themeHead"]:
+    for marker in ["let THEME_DATA", "function themeFor", "function motifSVG",
+                   "function applyAmbient", "function themeHead", "function sanitizeTheme"]:
         assert marker in JS, f"theme engine lost: {marker}"
 
 
@@ -35,7 +35,15 @@ def test_result_pass_gets_themed():
 
 
 def test_bluey_theme_exists_with_paws():
-    assert '"bluey"' in JS and "paws" in JS
+    import json
+    data = json.loads(Path("web/themes.json").read_text(encoding="utf-8"))
+    bluey = next(t for t in data["themes"] if t["id"] == "bluey")
+    assert bluey["motif"] == "paws" and "paws" in JS
+
+
+def test_hero_pass_reacts_to_theme():
+    assert 'id="hero-band"' in HTML
+    assert 'themeHead($("hero-band")' in JS
 
 
 # ---------- security: theme text must never hit a sink ----------
@@ -74,8 +82,9 @@ def test_booking_sinks_escaped():
     # every interpolation inside openBooking's template literals must be esc()'d,
     # fmt()'d, or a purely numeric/fixed value.
     seg = _booking_segment()
+    # th.* colors are safe: hex-validated by sanitizeTheme() before use.
     allowed = re.compile(
-        r"esc\(|fmt\(|req\.guest_count|req\.honoree_age|th\.c1|th\.c2|size|url\.replace")
+        r"esc\(|fmt\(|req\.guest_count|req\.honoree_age|th\.c1|th\.c2|th\.deep|size|url\.replace")
     for m in re.finditer(r"\$\{([^}]+)\}", seg):
         assert allowed.match(m.group(1).strip()), f"unescaped modal sink: {m.group(1)!r}"
 
