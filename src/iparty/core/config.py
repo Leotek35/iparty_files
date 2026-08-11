@@ -53,6 +53,13 @@ class Settings(BaseSettings):
     BOOKINGS_PATH: str = "data/bookings.jsonl"
     BOOKINGS_MAX_PER_SESSION: int = Field(default=3, ge=1, le=50)
     BOOKINGS_RATE_PER_MIN: int = Field(default=10, ge=1)
+
+    # Commercial model: service-marketplace take rate (benchmarks 15-30%;
+    # launch at the trust-building low end, vendor-side, never added on top
+    # of the family's verified price).
+    COMMISSION_RATE: float = Field(default=0.15, ge=0, le=0.35)
+    VENDORS_PATH: str = "data/vendor_leads.jsonl"
+    VENDORS_RATE_PER_MIN: int = Field(default=10, ge=1)
     EVENTS_MAX_BYTES: int = Field(default=25_000_000, ge=100_000)  # hard disk ceiling
     METRICS_TOKEN: str | None = None   # if set, /metrics + /events/summary require it
 

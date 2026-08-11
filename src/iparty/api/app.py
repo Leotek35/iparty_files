@@ -12,6 +12,7 @@ from ..core.config import settings
 from .bookings import router as bookings_router
 from .events import router as events_router
 from .routes import router
+from .vendors import router as vendors_router
 
 WEB_DIR = Path(__file__).resolve().parents[3] / "web"
 
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
     app.include_router(router, prefix="/api/v1")
     app.include_router(events_router, prefix="/api/v1")
     app.include_router(bookings_router, prefix="/api/v1")
+    app.include_router(vendors_router, prefix="/api/v1")
 
     @app.middleware("http")
     async def security_headers(request, call_next):

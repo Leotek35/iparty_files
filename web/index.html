@@ -296,6 +296,8 @@ body.has-theme .amb-motif{opacity:.09}
 .ticket .t-body{padding:18px 24px 22px; text-align:center}
 .ticket .t-ref{font-size:30px; font-weight:800; letter-spacing:.06em}
 .ticket .t-note{margin-top:8px; font-size:14px; color:var(--ink-2)}
+.fee-note{padding:0 22px 18px; font-size:12.5px; color:var(--ink-2); text-align:center}
+.vn-done{padding:26px 20px; text-align:center; font-size:15px; font-weight:700; color:var(--verify-text)}
 </style>
 </head>
 <body>
@@ -377,6 +379,26 @@ body.has-theme .amb-motif{opacity:.09}
     <div class="hood-grid" id="telemetry"></div>
   </details>
 </main>
+
+<section class="stage" id="vendors" style="padding-top:0">
+  <div class="stage-title">
+    <h2 class="display">Run a party business?</h2>
+    <p>Join the verified catalog. Families see your real prices and declared allergens — you get bookings that were checked before they reached you.</p>
+  </div>
+  <section class="card group" aria-label="Vendor signup">
+    <form id="vendor-form">
+      <div class="field"><label for="vn-name">Business</label><input id="vn-name" required minlength="2" maxlength="120" placeholder="e.g. Sunny Bakes Cakes" /></div>
+      <div class="field"><label for="vn-email">Email</label><input id="vn-email" type="email" required maxlength="100" /></div>
+      <div class="field"><label for="vn-cat">Category</label>
+        <select id="vn-cat"><option value="venue">Venue</option><option value="food">Food</option><option value="cake">Cakes</option><option value="supplies">Supplies</option><option value="activities">Activities</option><option value="entertainment">Entertainment</option><option value="other">Other</option></select></div>
+      <div class="field"><label for="vn-city">City</label><input id="vn-city" maxlength="80" placeholder="Optional" /></div>
+      <div class="m-err" id="vn-err"></div>
+      <div style="padding:16px 20px 20px">
+        <button class="btn-quiet" style="width:100%" id="vn-submit" type="submit">Apply to join the catalog</button>
+      </div>
+    </form>
+  </section>
+</section>
 
 <footer>
   Running the <span class="mono" id="backend-tag">mock</span> backend · every price from a verified catalog · nothing ships unverified
@@ -698,6 +720,7 @@ function openBooking(p, req){
         <div class="actions" style="grid-template-columns:1fr">
           <button class="cta" id="bk-submit" type="submit">Request booking</button>
         </div>
+        <p class="fee-note">Free for families. Vendors pay iParty a 15% platform fee on confirmed bookings — it's how we keep prices verified, never a markup on you.</p>
       </form>
     </div>
     <button class="m-close" id="bk-close" aria-label="Close">✕</button>
@@ -803,6 +826,28 @@ function renderTelemetry(t){
     cell(t.circuit_state,"CIRCUIT") +
     cell(t.elapsed_seconds+"s","ELAPSED");
 }
+
+// ---- Vendor lead capture (supply side) ----
+$("vendor-form").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const btn=$("vn-submit"); btn.disabled=true; btn.textContent="Sending…";
+  const err=$("vn-err"); err.classList.remove("on");
+  try{
+    const r = await fetch("/api/v1/vendors",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({business_name:$("vn-name").value.trim(),
+        contact_email:$("vn-email").value.trim(), category:$("vn-cat").value,
+        city:$("vn-city").value.trim()})});
+    if(r.status===201){
+      const d = await r.json();
+      $("vendor-form").innerHTML = `<div class="vn-done">${esc(d.message)}</div>`;
+      return;
+    }
+    err.textContent = r.status===429 ? "Too many submissions — try again in a minute."
+      : "Please check the business name and email."; err.classList.add("on");
+  }catch(_){ err.textContent="Network hiccup — try again."; err.classList.add("on"); }
+  finally{ if($("vn-submit")){ btn.disabled=false; btn.textContent="Apply to join the catalog"; } }
+});
 
 $("party-form").addEventListener("submit", async (e)=>{
   e.preventDefault();

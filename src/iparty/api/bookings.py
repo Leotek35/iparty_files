@@ -29,6 +29,7 @@ _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 _lock = threading.Lock()
 _by_session: dict[str, int] = {}
 _total = 0
+_gbv = 0.0  # gross booking value pipeline (sum of requested party totals)
 _confirmed_refs: set[str] = set()
 
 
@@ -87,7 +88,7 @@ def create_booking(req: BookingRequest, http: Request) -> dict:
             "error": "rate_limited",
             "message": "Too many booking requests; please slow down.",
         })
-    global _total
+    global _total, _gbv
     with _lock:
         used = _by_session.get(req.session_id, 0)
         if used >= _max_per_session():
@@ -97,6 +98,7 @@ def create_booking(req: BookingRequest, http: Request) -> dict:
             })
         _by_session[req.session_id] = used + 1
         _total += 1
+        _gbv = round(_gbv + req.party.total_cost, 2)
         ref = "IP-" + uuid.uuid4().hex[:8].upper()
         _confirmed_refs.add(ref)
         record = {
@@ -116,15 +118,27 @@ def create_booking(req: BookingRequest, http: Request) -> dict:
 
 @router.get("/bookings/summary")
 def bookings_summary() -> dict:
-    """Counts only — no PII ever leaves this endpoint."""
+    """Counts and aggregates only — no PII ever leaves this endpoint.
+
+    gbv_pipeline / est_take_revenue are the two numbers a marketplace lives
+    or dies by (GBV x take rate); surfacing them here makes unit economics a
+    monitored product metric instead of a spreadsheet exercise.
+    """
     with _lock:
-        return {"total_bookings": _total, "unique_sessions": len(_by_session)}
+        return {
+            "total_bookings": _total,
+            "unique_sessions": len(_by_session),
+            "gbv_pipeline": _gbv,
+            "commission_rate": settings.COMMISSION_RATE,
+            "est_take_revenue": round(_gbv * settings.COMMISSION_RATE, 2),
+        }
 
 
 def reset_state() -> None:
     """Test hook: clear in-memory counters (does not touch the JSONL log)."""
-    global _total
+    global _total, _gbv
     with _lock:
         _by_session.clear()
         _confirmed_refs.clear()
         _total = 0
+        _gbv = 0.0
