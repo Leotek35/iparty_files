@@ -179,14 +179,47 @@ def pen_probe(idx: int, findings: list) -> str:
     return name
 
 
+def _wait_port_free(port: int, timeout: float = 15.0) -> None:
+    """Back-to-back runs on a fixed port can probe the PREVIOUS run's dying
+    server and pollute the verdict (observed as a false PEN-MALFORMED).
+    Refuse to start until the port is actually free."""
+    import socket
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        with socket.socket() as s:
+            # SO_REUSEADDR mirrors uvicorn's own bind: TIME_WAIT sockets from a
+            # cleanly-stopped previous run must not read as "occupied" — only a
+            # live listener should.
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind(("127.0.0.1", port))
+                return
+            except OSError:
+                time.sleep(0.5)
+    raise SystemExit(f"port {port} still occupied after {timeout}s — aborting run")
+
+
+def _wait_ready(timeout: float = 15.0) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(BASE + "/health", timeout=1) as r:
+                if r.status == 200:
+                    return
+        except Exception:  # noqa: BLE001
+            time.sleep(0.3)
+    raise SystemExit("server did not become ready — aborting run")
+
+
 def main(loops: int, seed: int) -> int:
     rng = random.Random(seed)
     env = {**os.environ, "PYTHONPATH": "src", "EVENTS_PATH": "data/loop.jsonl",
            "PLAN_RATE_PER_MIN": "100000", "EVENTS_RATE_PER_MIN": "100000"}
+    _wait_port_free(8061)
     srv = subprocess.Popen(
         ["python3", "-m", "uvicorn", "iparty.api.app:app", "--host", "127.0.0.1", "--port", "8061"],
         env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(4)
+    _wait_ready()
     findings: list[tuple[str, str]] = []
     statuses: Counter = Counter()
     probes_run: Counter = Counter()
@@ -214,6 +247,11 @@ def main(loops: int, seed: int) -> int:
                 print(f"  loop {i+1}/{loops}  findings so far: {len(findings)}")
     finally:
         srv.terminate()
+        try:
+            srv.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            srv.kill()
+            srv.wait()
 
     lat = sorted(latencies)
     print("\n" + "=" * 60)

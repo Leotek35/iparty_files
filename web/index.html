@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>iParty — every party, verified</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --canvas:#F5F5F7; --surface:#FFFFFF; --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#AEAEB2;
@@ -26,7 +28,7 @@ body{
   -webkit-font-smoothing:antialiased;
   transition:background .8s ease;
 }
-.display{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif}
+.display{font-family:"Baloo 2",-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif}
 .mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;letter-spacing:0}
 
 /* ===== Glass nav ===== */
@@ -313,6 +315,22 @@ body.has-theme .amb-motif{opacity:.09}
 .fee-note{padding:0 22px 18px; font-size:12.5px; color:var(--ink-2); text-align:center}
 .fix-btn{border:none; background:none; padding:0; font:inherit; font-weight:700;
   color:inherit; text-decoration:underline; cursor:pointer}
+
+/* theme suggestion chips + inspo board */
+.chips{display:flex; flex-wrap:wrap; gap:8px; padding:10px 20px 14px}
+.chips button{font:inherit; font-size:13px; font-weight:600; color:var(--ink-2);
+  background:var(--canvas); border:0.5px solid var(--hairline); border-radius:var(--r-pill);
+  padding:7px 13px; cursor:pointer; transition:transform .15s var(--spring), background .2s, color .2s}
+.chips button:hover{background:var(--fill); color:var(--ink); transform:translateY(-1px)}
+.inspo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px}
+.inspo-card{background:var(--canvas); border-radius:14px; padding:13px 15px}
+.inspo-card h4{font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--ink-2); margin-bottom:8px}
+.inspo-card li{font-size:13.5px; line-height:1.45; margin:0 0 7px 14px}
+.inspo-links{display:flex; gap:10px; margin-top:12px}
+.inspo-links a{flex:1; text-align:center; font-size:13.5px; font-weight:600; color:var(--ink);
+  text-decoration:none; background:var(--fill); padding:10px 14px; border-radius:var(--r-pill);
+  transition:background .2s, transform .15s var(--spring)}
+.inspo-links a:hover{background:#E2E2E7; transform:translateY(-1px)}
 .vn-done{padding:26px 20px; text-align:center; font-size:15px; font-weight:700; color:var(--verify-text)}
 </style>
 </head>
@@ -322,7 +340,10 @@ body.has-theme .amb-motif{opacity:.09}
 
 <nav class="glassbar" aria-label="iParty">
   <span class="wordmark display">iParty<span class="dot">.</span></span>
-  <a class="navlink" href="#planner">Plan a party</a>
+  <span style="display:flex;gap:8px">
+    <a class="navlink" href="#planner">Plan a party</a>
+    <a class="navlink" href="#vendors">For vendors</a>
+  </span>
 </nav>
 
 <header class="hero">
@@ -381,6 +402,9 @@ body.has-theme .amb-motif{opacity:.09}
       <div class="field"><label for="location_type">Where</label>
         <select id="location_type"><option value="home">At home</option><option value="venue">A venue</option><option value="park">A park</option><option value="restaurant">A restaurant</option></select></div>
       <div class="field"><label for="theme">Theme</label><input id="theme" value="Under the Sea" placeholder="Optional — we'll choose" /></div>
+      <div class="chips" id="theme-chips" aria-label="Popular themes">
+        <button type="button" data-t="Bluey">Bluey</button><button type="button" data-t="Space">Space</button><button type="button" data-t="Dinosaur">Dinosaur</button><button type="button" data-t="Mermaid">Mermaid</button><button type="button" data-t="Minecraft">Minecraft</button><button type="button" data-t="Neon glow">Neon glow</button><button type="button" data-t="Frozen">Frozen</button>
+      </div>
       <div class="field"><label for="dietary_restrictions">Allergies</label><input id="dietary_restrictions" value="gluten-free" placeholder="Optional — e.g. nut allergy" /></div>
       <div style="padding:16px 20px 20px">
         <button class="cta" type="submit" id="submit-btn">Build my verified plan</button>
@@ -579,6 +603,30 @@ function themeHead(el, th){
 }
 $("theme").addEventListener("input",(e)=>applyAmbient(e.target.value));
 applyAmbient($("theme").value);
+document.querySelectorAll("#theme-chips button").forEach(b=>b.addEventListener("click",()=>{
+  $("theme").value=b.dataset.t; applyAmbient(b.dataset.t);
+  if(!_formStarted){ _formStarted=true; track("form_started"); }
+}));
+
+// ============ Inspo board (Pinterest/TikTok-style inspiration, curated) ============
+let INSPO = null;
+fetch("/static/inspo.json").then(r=>r.json()).then(d=>{ INSPO=d; }).catch(()=>{});
+function bandFor(age){ return age<=4?"toddler":age<=8?"kids":age<=12?"tween":"teen"; }
+function inspoHTML(req){
+  if(!INSPO) return "";
+  const th = themeFor(req.theme);
+  const t = (INSPO.themes||{})[th.id] || null;
+  const band = bandFor(req.honoree_age);
+  const games = [...(t?[t.game]:[]), ...(((INSPO.games_by_band||{})[band])||[]).slice(0, t?2:3)];
+  const decor = t?t.decor:[], treats = t?t.treats:[];
+  const q = encodeURIComponent(((req.theme||"").trim()||"birthday")+" party ideas");
+  const link = (href,label)=>`<a href="${href}${q}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  const card = (title,items)=>items.length?`<div class="inspo-card"><h4>${title}</h4><ul>${items.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"";
+  return `<div class="sect"><h3>INSPO BOARD</h3>
+    <div class="inspo-grid">${card("DECOR",decor)}${card("GAMES · AGE "+req.honoree_age,games)}${card("TREATS",treats)}</div>
+    <div class="inspo-links">${link("https://www.pinterest.com/search/pins/?q=","More inspo on Pinterest")}${link("https://www.tiktok.com/search?q=","Watch it on TikTok")}</div>
+  </div>`;
+}
 
 const fmt = (n)=>"$"+n.toFixed(2);
 const esc = (x)=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -754,6 +802,7 @@ function renderPass(data, req){
       <div class="sect"><h3>RUN OF SHOW</h3>${sched}</div>
       <div class="sect"><h3>ACTIVITIES</h3><div class="tags">${acts}</div></div>
       <div class="sect"><h3>SUPPLIES</h3><div class="tags">${supplies}</div></div>
+      ${inspoHTML(req)}
       ${p.notes?`<div class="note">${esc(p.notes)}</div>`:""}
 
       <div class="actions">
