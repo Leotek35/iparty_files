@@ -19,13 +19,12 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..core.config import settings
-from ..core.emailcheck import suggest_email
+from ..core.emailcheck import email_invalid_reason, suggest_email
 from ..core.ratelimit import client_key, limiter
 
 router = APIRouter(tags=["bookings"])
 
 _SESSION_RE = r"^[A-Za-z0-9\-]+$"
-_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 _PHONE_RE = re.compile(r"^\+?\d{7,15}$")
 
 
@@ -65,6 +64,12 @@ class BookingParty(BaseModel):
     theme: str = Field(default="", max_length=120)
     location_type: str = Field(default="home", max_length=20)
 
+    @field_validator("theme")
+    @classmethod
+    def strip_control(cls, v: str) -> str:
+        # Same hardening as name/notes below: control chars never reach the log.
+        return "".join(ch for ch in v if ch >= " " or ch in "\t")
+
 
 class BookingRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -84,8 +89,9 @@ class BookingRequest(BaseModel):
     @field_validator("contact_email")
     @classmethod
     def email_shape(cls, v: str) -> str:
-        if not _EMAIL_RE.match(v):
-            raise ValueError("contact_email is not a valid email address")
+        reason = email_invalid_reason(v)
+        if reason:
+            raise ValueError(f"contact_email {reason}")
         return v.lower()
 
     @field_validator("name", "notes")

@@ -8,7 +8,6 @@ summary — no PII ever leaves the summary endpoint).
 from __future__ import annotations
 
 import json
-import re
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -19,12 +18,11 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..core.config import settings
+from ..core.emailcheck import email_invalid_reason
 from ..core.ratelimit import client_key, limiter
 from .bookings import normalize_phone, reject_email_typos
 
 router = APIRouter(tags=["vendors"])
-
-_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
 
 _lock = threading.Lock()
 _total = 0
@@ -49,8 +47,9 @@ class VendorLead(BaseModel):
     @field_validator("contact_email")
     @classmethod
     def email_shape(cls, v: str) -> str:
-        if not _EMAIL_RE.match(v):
-            raise ValueError("contact_email is not a valid email address")
+        reason = email_invalid_reason(v)
+        if reason:
+            raise ValueError(f"contact_email {reason}")
         return v.lower()
 
     @field_validator("business_name", "city", "notes")

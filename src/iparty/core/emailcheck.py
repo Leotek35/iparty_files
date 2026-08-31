@@ -1,11 +1,67 @@
-"""Email typo detection: catch 'gamail.com' before it becomes a lost booking.
+"""Email acceptance + typo detection: catch 'gamail.com' (and throwaway
+inboxes, and undeliverable shapes) before they become lost bookings.
 
-Design: only intervene when the typed domain is CLOSE to a popular consumer
-domain (edit distance 1, or 2 for longer domains) or uses a known TLD typo.
-Unknown-but-plausible business domains (leotek.tech) always pass — false
-positives on legit domains are worse than missed typos.
+Three layers, each with a distinct job:
+
+1. `EMAIL_RE` / `validate_email_address` — SHAPE. Dot-atom local part (no
+   leading/trailing/consecutive dots), alnum-with-inner-hyphen domain labels,
+   alphabetic TLD. Deliberately stricter than full RFC 5322 (no quoted locals,
+   no IP-literal domains): everything a real party parent types passes; the
+   junk that breaks downstream mail delivery does not.
+2. `DISPOSABLE_DOMAINS` — DURABILITY. A contact address that evaporates in ten
+   minutes is a lost booking; known throwaway providers are rejected at
+   capture time. Exact domain (or subdomain) match against a small curated
+   list — never fuzzy, so legit business domains can't be caught by accident.
+3. `suggest_email` — TYPOS. Only intervenes when the typed domain is CLOSE to
+   a popular consumer domain (edit distance 1, or 2 for longer domains) or
+   uses a known TLD typo. Unknown-but-plausible business domains
+   (leotek.tech) always pass — false positives on legit domains are worse
+   than missed typos.
 """
 from __future__ import annotations
+
+import re
+
+EMAIL_MAX_LENGTH = 254   # RFC 5321 path limit
+LOCAL_MAX_LENGTH = 64    # RFC 5321 local-part limit
+
+EMAIL_RE = re.compile(
+    r"^(?!\.)(?!.*\.\.)[A-Za-z0-9._%+\-]+(?<!\.)"
+    r"@(?:[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$"
+)
+
+DISPOSABLE_DOMAINS = frozenset({
+    "10minutemail.com", "dispostable.com", "disposablemail.com", "emailondeck.com",
+    "fakeinbox.com", "getnada.com", "grr.la", "guerrillamail.com", "maildrop.cc",
+    "mailinator.com", "mailnesia.com", "mintemail.com", "sharklasers.com",
+    "spam4.me", "temp-mail.org", "tempinbox.com", "tempmail.com",
+    "throwawaymail.com", "trashmail.com", "yopmail.com",
+})
+
+
+def is_disposable_domain(domain: str) -> bool:
+    d = domain.lower().rstrip(".")
+    return d in DISPOSABLE_DOMAINS or any(d.endswith("." + known) for known in DISPOSABLE_DOMAINS)
+
+
+def email_invalid_reason(email: str) -> str | None:
+    """Why `email` is unacceptable as a booking/vendor contact — or None if fine."""
+    if len(email) > EMAIL_MAX_LENGTH:
+        return "is too long to be a deliverable address"
+    if not EMAIL_RE.match(email):
+        return "is not a valid email address"
+    local, _, domain = email.rpartition("@")
+    if len(local) > LOCAL_MAX_LENGTH:
+        return "is not a valid email address"
+    if is_disposable_domain(domain):
+        return "uses a disposable email domain; please use a lasting address"
+    return None
+
+
+def validate_email_address(email: str) -> bool:
+    """True if `email` is deliverable-shaped and not a known throwaway domain."""
+    return email_invalid_reason(email) is None
+
 
 POPULAR_DOMAINS = [
     "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com",

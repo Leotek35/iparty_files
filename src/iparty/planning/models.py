@@ -13,10 +13,26 @@ class PartyRequest(BaseModel):
     honoree_age: int = Field(..., ge=1, le=120)
     party_date: date
     guest_count: int = Field(..., ge=1, le=500)
-    budget: float = Field(..., gt=0)
+    # Upper bound mirrors the bookings-side cap: rejects inf/absurd numbers
+    # while leaving every real party (and every luxury gala) untouched.
+    budget: float = Field(..., gt=0, le=1_000_000)
     theme: str = Field(default="", max_length=120)
     dietary_restrictions: str = Field(default="", max_length=300)
     location_type: Literal["home", "venue", "park", "restaurant"] = "home"
+
+    @field_validator("honoree_name", "theme", "dietary_restrictions")
+    @classmethod
+    def strip_control_chars(cls, v: str) -> str:
+        # Same hardening as the bookings capture: control characters (NUL,
+        # escape sequences) never enter plans or logs; unicode/emoji stay.
+        return "".join(ch for ch in v if ch >= " " or ch in "\t")
+
+    @field_validator("honoree_name")
+    @classmethod
+    def name_has_visible_chars(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("honoree_name must contain visible characters")
+        return v
 
     @field_validator("party_date")
     @classmethod
