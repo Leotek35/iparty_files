@@ -50,6 +50,8 @@ EventName = Literal[
     "plan_downloaded",
     "booking_interest",
     "feedback_answered",
+    "living_created",
+    "rsvp_submitted",
 ]
 
 # Whitelisted, non-identifying metadata keys and their allowed values.

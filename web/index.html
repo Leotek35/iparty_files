@@ -14,6 +14,7 @@
   --verify:#1D9A50; --verify-text:#177B3F; --verify-soft:#E7F6EE;
   --accent:#E9002E; --accent-press:#C60027;
   --danger:#D70015; --danger-soft:#FDECEE;
+  --warn:#9A6400; --warn-soft:#FFF4DD;
   --r-pass:26px; --r-ctl:14px; --r-pill:999px;
   --shadow-pass:0 1px 1px rgba(0,0,0,.05),0 10px 22px -8px rgba(0,0,0,.14),0 42px 90px -32px rgba(29,29,31,.38);
   --shadow-card:0 1px 1px rgba(0,0,0,.04),0 12px 32px -16px rgba(0,0,0,.12);
@@ -196,6 +197,40 @@ button:focus-visible,a:focus-visible{outline:none; box-shadow:0 0 0 3.5px rgba(0
 .fb p{font-size:15px; font-weight:600; margin-bottom:12px}
 .fb-row{display:flex; gap:10px; justify-content:center}
 .fb-row .btn-quiet{background:var(--surface); min-width:86px; border:0.5px solid var(--hairline)}
+
+/* ---- Living Pass: the plan that re-checks itself as guests RSVP ---- */
+.cta.live{background:var(--verify)} .cta.live:hover{background:var(--verify-text)}
+.living{margin-top:22px; padding:18px; background:var(--canvas); border-radius:18px; border:0.5px solid var(--hairline)}
+.lv-head{display:flex; justify-content:space-between; align-items:center; gap:10px}
+.lv-eyebrow{font-size:11px; font-weight:800; letter-spacing:.12em; color:var(--verify-text)}
+.lv-live{font-size:11px; color:var(--ink-3)}
+.lv-lede{margin:8px 0 0; font-size:14px; color:var(--ink-2)}
+.lv-links{margin-top:12px; display:grid; gap:6px}
+.lv-links label{font-size:12px; font-weight:600; color:var(--ink-2); margin-top:6px}
+.lv-row{display:flex; gap:8px}
+.lv-row input{flex:1; min-width:0; min-height:42px; border:0.5px solid var(--hairline); border-radius:var(--r-ctl);
+  background:var(--surface); padding:0 12px; font-size:13px; color:var(--ink)}
+.lv-row .btn-quiet{min-height:42px; padding:0 16px}
+.lv-status{margin-top:14px}
+.lv-pill{display:inline-block; font-size:14px; font-weight:700; padding:8px 12px; border-radius:var(--r-pill)}
+.lv-ok{background:var(--verify-soft); color:var(--verify-text)}
+.lv-wait{background:var(--fill); color:var(--ink-2)}
+.lv-attn{background:var(--danger-soft); color:var(--danger)}
+.lv-unv{background:var(--warn-soft); color:var(--warn)}
+.lv-counts{margin-top:8px; font-size:12px; color:var(--ink-2)}
+.lv-needs{margin-top:10px}
+.lv-k{display:block; font-size:12px; font-weight:600; color:var(--ink-2); margin-bottom:6px}
+.lv-attn-list{margin:10px 0 0; padding-left:18px; font-size:14px; color:var(--ink)}
+.lv-attn-list li{margin:4px 0}
+.lv-code{font-size:11px; color:var(--ink-3); margin-right:4px}
+.lv-fix{margin-top:12px; padding:14px; background:var(--surface); border-radius:14px; border:0.5px solid var(--hairline)}
+.lv-fix h4{margin:0 0 8px; font-size:13px; letter-spacing:.06em; color:var(--verify-text)}
+.lv-fix p{margin:0; font-size:14px; color:var(--ink)}
+.lv-nofix h4{color:var(--danger)}
+.lv-rem .what{color:var(--ink-3); text-decoration:line-through}
+.lv-fixtotal{display:flex; justify-content:space-between; gap:10px; margin-top:8px; font-size:14px; font-weight:600}
+.lv-fixtotal .of{font-weight:400; color:var(--ink-2)}
+.lv-partial{margin-top:8px; font-size:13px; color:var(--warn); background:var(--warn-soft); padding:8px 10px; border-radius:10px}
 .fb-done{font-size:15px; font-weight:700; color:var(--verify-text)}
 
 /* honest refusal */
@@ -398,7 +433,7 @@ body.has-theme .amb-motif{opacity:.09}
       <div class="field"><label for="honoree_age">Turning</label><input id="honoree_age" type="number" min="1" max="120" required value="6" /></div>
       <div class="field"><label for="party_date">Date</label><input id="party_date" type="date" required /></div>
       <div class="field"><label for="guest_count">Guests</label><input id="guest_count" type="number" min="1" max="500" required value="14" /></div>
-      <div class="field"><label for="budget">Budget</label><input id="budget" type="number" min="1" step="10" required value="650" /></div>
+      <div class="field"><label for="budget">Budget</label><input id="budget" type="number" min="1" step="1" required value="650" /></div>
       <div class="field"><label for="location_type">Where</label>
         <select id="location_type"><option value="home">At home</option><option value="venue">A venue</option><option value="park">A park</option><option value="restaurant">A restaurant</option></select></div>
       <div class="field"><label for="theme">Theme</label><input id="theme" value="Under the Sea" placeholder="Optional — we'll choose" /></div>
@@ -806,10 +841,12 @@ function renderPass(data, req){
       ${p.notes?`<div class="note">${esc(p.notes)}</div>`:""}
 
       <div class="actions">
+        <button class="cta live" id="live-btn">Make it a Living Pass — invite guests</button>
         <button class="cta" id="book-btn">Help me book this party</button>
         <button class="btn-quiet" id="copy-btn">Copy plan</button>
         <button class="btn-quiet" id="dl-btn">Download</button>
       </div>
+      <div id="living-root"></div>
 
       <div class="fb" id="fb">
         <p>Would you use this plan for a real party?</p>
@@ -832,6 +869,7 @@ function renderPass(data, req){
   $("copy-btn").addEventListener("click",(e)=>copyPlan(p, req, e.target));
   $("dl-btn").addEventListener("click",()=>downloadPlan(p, req));
   $("book-btn").addEventListener("click",()=>openBooking(p, req));
+  $("live-btn").addEventListener("click",()=>startLiving(req));
   document.querySelectorAll("#fb .btn-quiet").forEach(b=>b.addEventListener("click",()=>{
     track("feedback_answered",{answer:b.dataset.a});
     $("fb").innerHTML = '<div class="fb-done">Thank you — that genuinely helps.</div>';
@@ -1001,6 +1039,120 @@ $("vendor-form").addEventListener("submit", async (e)=>{
   }catch(_){ err.textContent="Network hiccup — try again."; err.classList.add("on"); }
   finally{ if($("vn-submit")){ btn.disabled=false; btn.textContent="Apply to join the catalog"; } }
 });
+
+// ============ Living Pass: save the verified plan, invite by link, watch it re-check itself ============
+let LIVING = null; // {planId, hostToken, timer, polls}
+
+function livingLinksFor(planId, hostToken){
+  const base = location.origin;
+  return { invite_url:`${base}/rsvp?p=${planId}`, host_url:`${base}/?living=${planId}&host=${hostToken}` };
+}
+
+async function copyText(text, btn){
+  try{ await navigator.clipboard.writeText(text); const o=btn.textContent; btn.textContent="Copied"; setTimeout(()=>{ btn.textContent=o; },1400); }
+  catch(_){ /* clipboard blocked — the field is selectable */ }
+}
+
+async function startLiving(req){
+  const btn=$("live-btn"); if(btn){ btn.disabled=true; btn.textContent="Saving your verified plan…"; }
+  try{
+    const r = await fetch("/api/v1/plans",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(req)});
+    if(!r.ok) throw new Error(r.status===429 ? "Too many plans right now — try again in a minute." : "Couldn't save the plan — try again.");
+    const d = await r.json();
+    track("living_created");
+    LIVING = { planId:d.plan_id, hostToken:d.host_token, polls:0 };
+    history.replaceState(null, "", `/?living=${encodeURIComponent(d.plan_id)}&host=${encodeURIComponent(d.host_token)}`);
+    renderLivingShell(d);
+    await refreshLiving();
+    scheduleLiving();
+    if(btn){ btn.textContent="Living Pass is on"; }
+  }catch(err){
+    if(btn){ btn.disabled=false; btn.textContent="Make it a Living Pass — invite guests"; }
+    const root=$("living-root"); if(root) root.innerHTML = `<div class="note">${esc(err.message)}</div>`;
+  }
+}
+
+function renderLivingShell(links){
+  const root=$("living-root"); if(!root) return;
+  root.innerHTML = `
+  <div class="living" id="living">
+    <div class="lv-head"><span class="lv-eyebrow">LIVING PASS</span><span class="lv-live mono" id="lv-stamp">checking…</span></div>
+    <p class="lv-lede">Send the invite link. Every RSVP re-checks this plan — portions, place settings, budget and any allergies guests list — and hands you a verified fix if something breaks.</p>
+    <div class="lv-links">
+      <label for="lv-invite">Invite link — send to guests</label>
+      <div class="lv-row"><input id="lv-invite" class="mono" readonly value="${esc(links.invite_url)}"><button class="btn-quiet" id="lv-copy">Copy</button></div>
+      <label for="lv-host">Your host link — bookmark it to check back</label>
+      <div class="lv-row"><input id="lv-host" class="mono" readonly value="${esc(links.host_url)}"><button class="btn-quiet" id="lv-copy2">Copy</button></div>
+    </div>
+    <div id="lv-status" class="lv-status" aria-live="polite"></div>
+  </div>`;
+  $("lv-copy").addEventListener("click",(e)=>copyText($("lv-invite").value, e.target));
+  $("lv-copy2").addEventListener("click",(e)=>copyText($("lv-host").value, e.target));
+}
+
+async function refreshLiving(){
+  if(!LIVING) return;
+  try{
+    const r = await fetch(`/api/v1/plans/${encodeURIComponent(LIVING.planId)}/status`,{headers:{"X-Host-Token":LIVING.hostToken}});
+    if(r.status===401){ const s=$("lv-status"); if(s) s.innerHTML = `<div class="note">This host link isn't valid.</div>`; return; }
+    if(!r.ok) throw new Error("status "+r.status);
+    renderLiving(await r.json());
+  }catch(_){ const s=$("lv-stamp"); if(s) s.textContent="offline — retrying"; }
+}
+
+function scheduleLiving(){
+  if(!LIVING) return;
+  clearTimeout(LIVING.timer);
+  if(LIVING.polls++ > 300) return;
+  LIVING.timer = setTimeout(async ()=>{ if(!document.hidden) await refreshLiving(); scheduleLiving(); }, 6000);
+}
+
+function renderLiving(s){
+  const box=$("lv-status"); if(!box) return;
+  const stamp=$("lv-stamp"); if(stamp) stamp.textContent = "re-checked just now · 0 model calls";
+  const pill = {awaiting:"lv-wait", verified:"lv-ok", attention:"lv-attn", unverifiable:"lv-unv"}[s.state] || "lv-wait";
+  const needs = (s.dietary_needs||[]).map(n=>`<span class="tag">${esc(n)}</span>`).join("");
+  const attention = (s.attention||[]).map(a=>`<li><span class="lv-code mono">${esc(a.code)}</span>${esc(a.message)}</li>`).join("");
+  const line = (li, sign, cls)=>`<div class="line ${cls}"><span class="what">${sign} ${esc(li.description)}${li.quantity>1?` ×${li.quantity}`:""}</span><span class="dots"></span><span class="amt mono">${fmt(li.subtotal)}</span></div>`;
+
+  let fixHTML = "";
+  const fix = s.fix;
+  if(fix && fix.available){
+    const delta = fix.delta_vs_current; const sign = delta>0 ? "+" : "";
+    fixHTML = `<div class="lv-fix">
+      <h4>VERIFIED FIX${fix.strategy==="repair" ? " — KEEPS YOUR CHOICES" : " — CHEAPEST COMPLIANT PLAN"}</h4>
+      <div class="receipt">${(fix.added||[]).map(li=>line(li,"+","")).join("")}${(fix.removed||[]).map(li=>line(li,"−","lv-rem")).join("")}</div>
+      <div class="lv-fixtotal"><span>New total</span><span class="mono">${fmt(fix.new_total)} <span class="of">(${sign}${fmt(delta)} vs now · budget ${fmt(fix.budget)})</span></span></div>
+      ${fix.covers_unverifiable===false ? `<div class="lv-partial">Doesn't cover: ${(fix.excluded_needs||[]).map(esc).join(", ")} — confirm that with the guest or a certified vendor.</div>` : ""}
+    </div>`;
+  } else if(fix && !fix.available){
+    fixHTML = `<div class="lv-fix lv-nofix"><h4>NO VERIFIED FIX WITHIN BUDGET</h4><p>${esc(fix.message||"")}${fix.minimum_feasible_budget ? ` Minimum for this guest list: <span class="mono">${fmt(fix.minimum_feasible_budget)}</span>.` : ""}</p></div>`;
+  }
+  const rs = s.right_size;
+  const rsHTML = (rs && rs.available)
+    ? `<div class="lv-fix"><h4>RIGHT-SIZE IT</h4><p>${rs.confirmed} confirmed — the cheapest verified plan for that headcount is <span class="mono">${fmt(rs.new_total)}</span>, <b>${fmt(rs.savings)} less</b> than your current selections.</p></div>`
+    : "";
+
+  box.innerHTML = `
+    <div class="lv-pill ${pill}">${esc(s.headline)}</div>
+    <div class="lv-counts mono">${s.confirmed_guests} confirmed of ${s.planned_guests} planned · ${s.responses.going} going · ${s.responses.declined} can't make it · now ${fmt(s.current_total)} of ${fmt(s.budget)}</div>
+    ${needs ? `<div class="lv-needs"><span class="lv-k">Needs on the list</span><div class="tags">${needs}</div></div>` : ""}
+    ${attention ? `<ul class="lv-attn-list">${attention}</ul>` : ""}
+    ${fixHTML}${rsHTML}`;
+}
+
+// A host returning via their bookmarked link lands straight on the live status.
+(function(){
+  const q = new URLSearchParams(location.search);
+  const id = q.get("living"), tok = q.get("host");
+  if(id && tok && /^[A-Za-z0-9_-]{8,64}$/.test(id) && /^[A-Za-z0-9_-]{8,128}$/.test(tok)){
+    LIVING = { planId:id, hostToken:tok, polls:0 };
+    $("result").innerHTML = `<article class="card"><div id="living-root"></div></article>`;
+    renderLivingShell(livingLinksFor(id, tok));
+    refreshLiving(); scheduleLiving();
+    $("result").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+})();
 
 $("party-form").addEventListener("submit", async (e)=>{
   e.preventDefault();

@@ -63,6 +63,14 @@ class Settings(BaseSettings):
     EVENTS_MAX_BYTES: int = Field(default=25_000_000, ge=100_000)  # hard disk ceiling
     METRICS_TOKEN: str | None = None   # if set, /metrics + /events/summary require it
 
+    # Living Pass: a saved plan that re-verifies itself as guests RSVP.
+    PLANS_DB_PATH: str = "data/iparty.db"
+    LIVING_MAX_GUESTS_PER_PLAN: int = Field(default=200, ge=1, le=5000)
+    LIVING_MAX_PARTY_SIZE: int = Field(default=8, ge=1, le=20)
+    LIVING_RSVP_RATE_PER_MIN: int = Field(default=30, ge=1)
+    LIVING_CREATE_RATE_PER_MIN: int = Field(default=10, ge=1)
+    PUBLIC_BASE_URL: str | None = None  # e.g. https://iparty.app — used to build share links
+
     HOST: str = "0.0.0.0"
     PORT: int = Field(default=8000, ge=1, le=65535)
 

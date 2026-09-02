@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>You're invited — iParty</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#F5F5F7; --surface:#FFFFFF; --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#AEAEB2;
+  --hairline:rgba(0,0,0,.10); --fill:#EDEDF0;
+  --band:#1D1D1F; --band-text:#F5F5F7; --band-dim:#98989D;
+  --verify:#1D9A50; --verify-text:#177B3F; --verify-soft:#E7F6EE;
+  --accent:#E9002E; --accent-press:#C60027;
+  --danger:#D70015; --danger-soft:#FDECEE;
+  --r-pass:26px; --r-ctl:14px; --r-pill:999px;
+  --shadow-pass:0 1px 1px rgba(0,0,0,.05),0 10px 22px -8px rgba(0,0,0,.14),0 42px 90px -32px rgba(29,29,31,.38);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--canvas);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.45}
+.display{font-family:"Baloo 2",-apple-system,BlinkMacSystemFont,sans-serif}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
+main{max-width:520px;margin:0 auto;padding:28px 16px 64px}
+.brand{font-weight:800;font-size:18px;margin-bottom:18px}
+.brand span{color:var(--verify)}
+.pass{background:var(--surface);border-radius:var(--r-pass);box-shadow:var(--shadow-pass);overflow:hidden}
+.band{background:var(--band);color:var(--band-text);padding:26px 24px 22px}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--band-dim)}
+.title{font-size:34px;font-weight:800;line-height:1.05;margin-top:6px}
+.meta{margin-top:8px;color:var(--band-dim);font-size:14px}
+.facts{padding:18px 24px 6px}
+.fact{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--hairline);font-size:15px}
+.fact:last-child{border-bottom:none}
+.fact .k{color:var(--ink-2)}
+.fact .v{font-weight:600;text-align:right}
+.going{display:inline-block;margin:4px 24px 0;font-size:12px;font-weight:700;letter-spacing:.06em;
+  color:var(--verify-text);background:var(--verify-soft);border-radius:var(--r-pill);padding:5px 11px}
+form{padding:18px 24px 24px}
+.field{margin-top:12px}
+label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+input,select{width:100%;min-height:46px;border:0.5px solid var(--hairline);border-radius:var(--r-ctl);
+  background:var(--canvas);padding:0 14px;font:inherit;font-size:16px;color:var(--ink)}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--verify);outline-offset:2px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button{min-height:46px;border:0.5px solid var(--hairline);border-radius:var(--r-ctl);background:var(--canvas);
+  font:inherit;font-size:15px;font-weight:600;color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--band-text);border-color:var(--ink)}
+.cta{width:100%;min-height:50px;margin-top:18px;border:none;border-radius:var(--r-pill);background:var(--accent);
+  color:#fff;font:inherit;font-size:16px;font-weight:700;cursor:pointer}
+.cta:disabled{opacity:.6;cursor:default}
+.hint{margin-top:10px;font-size:13px;color:var(--ink-2)}
+.err{display:none;margin-top:10px;font-size:14px;color:var(--danger);background:var(--danger-soft);padding:10px 12px;border-radius:12px}
+.err.on{display:block}
+.done{padding:26px 24px 28px}
+.done h2{font-size:26px;font-weight:800;margin:0}
+.done p{margin:10px 0 0;color:var(--ink-2);font-size:15px}
+.done .chk{margin-top:14px;padding:12px 14px;background:var(--verify-soft);color:var(--verify-text);border-radius:14px;font-size:14px;font-weight:600}
+.done .again{margin-top:16px;background:var(--fill);color:var(--ink);min-height:44px;border:none;border-radius:var(--r-pill);font:inherit;font-weight:600;padding:0 18px;cursor:pointer}
+.empty{background:var(--surface);border-radius:20px;padding:28px 24px;text-align:center;color:var(--ink-2)}
+.foot{margin-top:18px;font-size:12px;color:var(--ink-3);text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand display">iParty<span>.</span></div>
+  <div id="root" class="empty">Loading your invitation…</div>
+  <div class="foot">Living Pass · the host's plan re-checks itself as guests respond</div>
+</main>
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const root = $("root");
+  const params = new URLSearchParams(location.search);
+  const planId = (params.get("p")||"").trim();
+  const sessionId = "rsvp-" + Math.random().toString(36).slice(2,14) + Math.random().toString(36).slice(2,8);
+  const keyName = "iparty-rsvp-" + planId;
+
+  // Every server string is inserted with textContent — never HTML.
+  function el(tag, cls, text){ const n=document.createElement(tag); if(cls) n.className=cls; if(text!=null) n.textContent=text; return n; }
+  function fmtDate(iso){ const d=new Date(iso+"T12:00:00"); return isNaN(d)?iso:d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}); }
+  function track(ev){ try{ fetch("/api/v1/events",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:sessionId,event:ev})}); }catch(_){} }
+  function savedKey(){ try{ return localStorage.getItem(keyName)||null; }catch(_){ return null; } }
+  function remember(k){ try{ localStorage.setItem(keyName,k); }catch(_){} }
+
+  if(!/^[A-Za-z0-9_-]{8,64}$/.test(planId)){ root.textContent="This invitation link isn't valid. Ask the host to send it again."; return; }
+
+  let invite=null, attending=true;
+
+  function renderInvite(inv){
+    root.className=""; root.replaceChildren();
+    const pass=el("article","pass");
+    const band=el("div","band");
+    band.append(el("div","eyebrow","YOU'RE INVITED"));
+    band.append(el("div","title display", inv.theme || "A party"));
+    band.append(el("div","meta", `${inv.honoree_name} turns ${inv.honoree_age}`));
+    pass.append(band);
+    const facts=el("div","facts");
+    const rows=[["When", fmtDate(inv.party_date) + (inv.starts?` · ${inv.starts}–${inv.ends}`:"")],
+                ["Where", inv.venue || inv.location_type]];
+    rows.forEach(([k,v])=>{ const f=el("div","fact"); f.append(el("span","k",k)); f.append(el("span","v",v)); facts.append(f); });
+    pass.append(facts);
+    if(inv.confirmed_guests>0) pass.append(el("div","going", `${inv.confirmed_guests} GOING`));
+
+    const form=el("form"); form.id="rsvp-form";
+    const fName=el("div","field"); const lName=el("label",null,"Your name"); lName.htmlFor="g-name";
+    const iName=el("input"); iName.id="g-name"; iName.required=true; iName.maxLength=80; iName.autocomplete="name"; iName.placeholder="e.g. The Chen family";
+    fName.append(lName,iName);
+    const fGo=el("div","field"); fGo.append(el("label",null,"Can you make it?"));
+    const seg=el("div","seg");
+    const bYes=el("button",null,"Yes, we're in"); bYes.type="button"; bYes.setAttribute("aria-pressed","true");
+    const bNo=el("button",null,"Can't make it"); bNo.type="button"; bNo.setAttribute("aria-pressed","false");
+    function pick(y){ attending=y; bYes.setAttribute("aria-pressed",String(y)); bNo.setAttribute("aria-pressed",String(!y)); fSize.hidden=!y; fDiet.hidden=!y; }
+    bYes.addEventListener("click",()=>pick(true)); bNo.addEventListener("click",()=>pick(false));
+    seg.append(bYes,bNo); fGo.append(seg);
+    const fSize=el("div","field"); const lSize=el("label",null,"How many of you are coming?"); lSize.htmlFor="g-size";
+    const sel=el("select"); sel.id="g-size";
+    for(let i=1;i<=(inv.max_party_size||8);i++){ const o=el("option",null, i===1?"Just 1":`${i} people`); o.value=String(i); sel.append(o); }
+    fSize.append(lSize,sel);
+    const fDiet=el("div","field"); const lDiet=el("label",null,"Any allergies or dietary needs? (optional)"); lDiet.htmlFor="g-diet";
+    const iDiet=el("input"); iDiet.id="g-diet"; iDiet.maxLength=200; iDiet.placeholder="e.g. peanut allergy, vegetarian";
+    fDiet.append(lDiet,iDiet);
+    const err=el("div","err"); err.id="g-err";
+    const cta=el("button","cta", savedKey()?"Update my RSVP":"Send my RSVP"); cta.type="submit"; cta.id="g-submit";
+    const hint=el("p","hint","The host's plan is re-checked — portions, place settings and any allergies you list — the moment you respond.");
+    form.append(fName,fGo,fSize,fDiet,err,cta,hint);
+    form.addEventListener("submit", submit);
+    pass.append(form);
+    root.append(pass);
+  }
+
+  async function submit(e){
+    e.preventDefault();
+    const btn=$("g-submit"), err=$("g-err"); err.classList.remove("on"); btn.disabled=true; btn.textContent="Sending…";
+    const body={ guest_name:$("g-name").value, attending, party_size:+($("g-size").value||1), dietary:($("g-diet").value||"") };
+    const k=savedKey(); if(k) body.guest_key=k;
+    try{
+      const r=await fetch(`/api/v1/plans/${encodeURIComponent(planId)}/rsvp`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      if(r.status===429){ const d=await r.json().catch(()=>({})); const det=(d&&d.detail)||{}; err.textContent = det.error==="plan_full" ? "This party's guest list is full — let the host know." : "Too many responses right now — try again in a minute."; err.classList.add("on"); return; }
+      if(r.status===404){ err.textContent="This invitation is no longer available."; err.classList.add("on"); return; }
+      if(!r.ok){ err.textContent="Please check your name and party size."; err.classList.add("on"); return; }
+      const d=await r.json(); remember(d.guest_key); track("rsvp_submitted"); renderDone(d, body);
+    }catch(_){ err.textContent="Network hiccup — try again."; err.classList.add("on"); }
+    finally{ if($("g-submit")){ btn.disabled=false; btn.textContent=savedKey()?"Update my RSVP":"Send my RSVP"; } }
+  }
+
+  function renderDone(d, body){
+    root.replaceChildren();
+    const pass=el("article","pass"); const box=el("div","done");
+    box.append(el("h2","display", body.attending ? `You're in, ${body.guest_name}!` : `Thanks for letting us know, ${body.guest_name}.`));
+    if(body.attending){
+      box.append(el("p",null, `${d.confirmed_guests} going so far. The host's plan just re-checked itself for that headcount.`));
+      if(d.dietary_noted) box.append(el("div","chk", `Noted: ${body.dietary}. The host sees it and the menu is re-checked for it.`));
+    } else {
+      box.append(el("p",null,"Your response is saved — the host's plan has been re-checked for the updated headcount."));
+    }
+    const again=el("button","again","Change my RSVP"); again.type="button";
+    again.addEventListener("click",()=>load());
+    box.append(again); pass.append(box); root.append(pass);
+  }
+
+  async function load(){
+    try{
+      const r=await fetch(`/api/v1/plans/${encodeURIComponent(planId)}/rsvp`);
+      if(r.status===404){ root.textContent="This invitation isn't available. Ask the host to send it again."; return; }
+      invite=await r.json(); renderInvite(invite); track("page_view");
+    }catch(_){ root.textContent="Couldn't load the invitation — check your connection and try again."; }
+  }
+  load();
+})();
+</script>
+</body>
+</html>

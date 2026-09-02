@@ -30,9 +30,25 @@ A raw LLM call returns something *plausible*. iParty returns something *verified
 | **Prices are hallucinated** | The model **selects catalog SKUs**; the system prices them. Unreal prices are rejected. |
 | **Allergens are unsafe** | Checked against FDA big-9 allergen profiles, not string tags. A peanut dish fails a nut-allergy request. |
 | **No valid plan exists** | The API returns `422` with the binding constraints and the **minimum feasible budget** — it never ships an invalid plan. |
+| **The plan goes stale once RSVPs arrive** | **Living Pass** re-verifies the saved plan against the *live* guest list on every response — headcount, place settings, budget, declared allergies — and attaches a verified fix. See [docs/LIVING_PASS.md](docs/LIVING_PASS.md). |
 
 The orchestration emits **telemetry** describing exactly which patterns fired,
 which the UI renders as a live *reliability ledger*.
+
+## Living Pass — the plan that re-checks itself as guests RSVP
+
+Every RSVP tool on the market counts heads and stops. A Living Pass is a saved,
+verified plan with an invite link: as guests respond (name, party size,
+optional dietary needs — no account), the plan is re-grounded at the confirmed
+headcount and re-verified. Too many mouths for the cake → a verified fix with
+its cost. A guest declares a peanut allergy → the menu is re-checked and the
+unsafe item swapped. Fewer confirm than planned → the cheaper verified plan and
+the savings. A need the catalog can't verify (halal, kosher) → flagged by name,
+never silently "handled". Every re-check is model-free and instant.
+
+Host: build a plan → **Make it a Living Pass** → send the invite link, keep the
+host link. Guest: `/rsvp?p=<plan_id>`. Details, API and trust boundaries in
+[docs/LIVING_PASS.md](docs/LIVING_PASS.md).
 
 ## The TTL → planning mapping
 
@@ -92,6 +108,10 @@ Returns the plan, a `verification` report (passed / score / violations), and
 state, elapsed time, and a human-readable pattern log).
 
 `GET /health` — liveness + active backend.
+
+Living Pass: `POST /api/v1/plans` (save + links) · `GET /api/v1/plans/{id}`
+(public pass) · `GET|POST /api/v1/plans/{id}/rsvp` (invitation / respond) ·
+`GET /api/v1/plans/{id}/status` and `/guests` (host token required).
 
 ## Project layout
 

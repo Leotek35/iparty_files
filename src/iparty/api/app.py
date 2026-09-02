@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from ..core.config import settings
 from .bookings import router as bookings_router
 from .events import router as events_router
+from .living import router as living_router
 from .routes import router
 from .vendors import router as vendors_router
 
@@ -27,6 +28,7 @@ def create_app() -> FastAPI:
     app.include_router(events_router, prefix="/api/v1")
     app.include_router(bookings_router, prefix="/api/v1")
     app.include_router(vendors_router, prefix="/api/v1")
+    app.include_router(living_router, prefix="/api/v1")
 
     @app.middleware("http")
     async def security_headers(request, call_next):
@@ -53,6 +55,11 @@ def create_app() -> FastAPI:
         @app.get("/")
         async def index() -> FileResponse:
             return FileResponse(WEB_DIR / "index.html")
+
+        @app.get("/rsvp")
+        async def rsvp_page() -> FileResponse:
+            """Guest-facing Living Pass page: the invitation + RSVP form."""
+            return FileResponse(WEB_DIR / "rsvp.html")
 
         app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
 

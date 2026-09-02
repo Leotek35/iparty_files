@@ -183,16 +183,22 @@ _UNVERIFIABLE_TOKENS = ("halal", "kosher", "pork", "pescatarian", "keto", "paleo
 
 
 def unverifiable_dietary(restrictions: str) -> str | None:
-    """Return the restriction text if the user expressed a dietary need we do NOT
-    understand or cannot verify — so the app can fail closed instead of silently
-    shipping a plan that appears 'checked'. Returns None when the need is empty,
-    or fully handled (allergen and/or vegetarian)."""
+    """Return the first dietary need we do NOT understand or cannot verify — so
+    the app can fail closed instead of silently shipping a plan that appears
+    'checked'. Returns None when the need is empty, or fully handled (allergen
+    and/or vegetarian).
+
+    Compound needs are judged piece by piece ('gluten free; halal' -> 'halal'):
+    a need we do understand must never let one we don't hide behind it."""
     text = (restrictions or "").strip()
     if not text:
         return None
-    if parse_forbidden_allergens(text) or requires_vegetarian(text):
-        return None
-    return text
+    pieces = [p.strip() for p in text.replace("\n", ";").replace(",", ";").split(";") if p.strip()]
+    for piece in pieces or [text]:
+        if parse_forbidden_allergens(piece) or requires_vegetarian(piece):
+            continue
+        return piece
+    return None
 
 
 def requires_vegetarian(restrictions: str) -> bool:

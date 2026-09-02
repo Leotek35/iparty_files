@@ -7,6 +7,9 @@ CI like every other test); this script only packages them:
   tests/test_e2e_user_journeys.py            end-to-end journeys over the API
   tests/test_adversarial_security_fuzzing.py races, hostile input, email gate
   tests/test_mece_gap_partitions.py          feasibility/verifier/limiter gaps
+  tests/test_living_pass_mece.py             Living Pass: 5 RSVP waves × every profile
+  tests/test_living_pass_api.py              Living Pass: contract, credentials, fuzz
+  tests/mece_profiles.py                     the shared 100-profile table
 
 Usage:  python scripts/generate_test_suite_zip.py
 Output: iparty_deep_testing_suite.zip (at the repo root)
@@ -20,10 +23,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 SUITE_FILES = [
+    "tests/mece_profiles.py",
     "tests/test_100_user_profiles_mece.py",
     "tests/test_e2e_user_journeys.py",
     "tests/test_adversarial_security_fuzzing.py",
     "tests/test_mece_gap_partitions.py",
+    "tests/test_living_pass_mece.py",
+    "tests/test_living_pass_api.py",
 ]
 
 ZIP_NAME = "iparty_deep_testing_suite.zip"

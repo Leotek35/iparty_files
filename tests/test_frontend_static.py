@@ -29,7 +29,8 @@ def test_esc_helper_exists():
 
 def test_no_unescaped_user_strings_in_html_sinks():
     html_sinks = {"renderPass", "renderInfeasible", "verifyingSkeleton",
-                  "checklistFor", "renderTelemetry", "renderUnavailable"}
+                  "checklistFor", "renderTelemetry", "renderUnavailable",
+                  "renderLiving", "renderLivingShell"}
     raw = [m for m in re.finditer(r"\$\{(?:" + USER_STRINGS + r")\}", JS)
            if _owner_function(m.start()) in html_sinks]
     assert not raw, f"unescaped user strings in HTML sinks: {len(raw)}"
