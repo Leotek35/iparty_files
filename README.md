@@ -44,7 +44,9 @@ headcount and re-verified. Too many mouths for the cake → a verified fix with
 its cost. A guest declares a peanut allergy → the menu is re-checked and the
 unsafe item swapped. Fewer confirm than planned → the cheaper verified plan and
 the savings. A need the catalog can't verify (halal, kosher) → flagged by name,
-never silently "handled". Every re-check is model-free and instant.
+never silently "handled". Every proposal is one tap to accept — it is
+recomputed and re-verified server-side, then becomes the saved plan. Every
+re-check is model-free and instant.
 
 Host: build a plan → **Make it a Living Pass** → send the invite link, keep the
 host link. Guest: `/rsvp?p=<plan_id>`. Details, API and trust boundaries in
@@ -123,9 +125,26 @@ src/iparty/
   planning/      models, grounding, verifier (the gate), feasibility, prompts, planner
   llm/           Anthropic + offline Mock backends
   api/           FastAPI app + routes
-web/             single-page UI with the reliability ledger
-tests/           verifier, engine, planner, and API tests
+web/             single-page UI with the reliability ledger + guest RSVP page
+tests/           verifier, engine, planner, API, 100-profile MECE matrix, UX guards
+tests/ui/        opt-in browser matrix (IPARTY_UI=1): 100 profiles × desktop/phone, axe-core
+scripts/         ui_matrix.py (the browser harness), suite packaging
 ```
+
+## Testing
+
+```bash
+make test        # 487 tests: engine, verifier, API, 100-profile MECE matrix, static UX guards
+make lint
+pip install -e ".[ui]" && playwright install chromium && npm i axe-core
+make ui-test     # browser smoke: 17 stratified profiles on desktop + phone (IPARTY_UI_FULL=1 for all 100)
+```
+
+The browser matrix drives the real pages the way a person would — form →
+verified pass or honest "can't be done" → Living Pass → guest RSVP on a phone →
+host panel — and gates on layout (no sideways scroll, no clipped text, 44px
+tap targets), WCAG 2.1 AA (axe-core), copy (no machine codes), and flow (no
+dead ends). Findings and their owners: [docs/UX_MATRIX.md](docs/UX_MATRIX.md).
 
 ## Research foundation
 

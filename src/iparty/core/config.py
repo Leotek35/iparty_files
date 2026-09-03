@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     LIVING_MAX_GUESTS_PER_PLAN: int = Field(default=200, ge=1, le=5000)
     LIVING_MAX_PARTY_SIZE: int = Field(default=8, ge=1, le=20)
     LIVING_RSVP_RATE_PER_MIN: int = Field(default=30, ge=1)
-    LIVING_CREATE_RATE_PER_MIN: int = Field(default=10, ge=1)
+    LIVING_CREATE_RATE_PER_MIN: int = Field(default=30, ge=1)
     PUBLIC_BASE_URL: str | None = None  # e.g. https://iparty.app — used to build share links
 
     HOST: str = "0.0.0.0"

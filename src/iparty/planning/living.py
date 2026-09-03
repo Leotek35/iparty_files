@@ -321,6 +321,20 @@ def _fix_payload(plan: PartyPlan, report: VerificationReport, saved_plan: PartyP
     }
 
 
+def headcount_settled(planned: int, guests: list[dict]) -> bool:
+    """A right-size offer is only meaningful once the picture is real: at least
+    half the planned seats have confirmed, or every planned seat has answered
+    (confirmed seats plus declined seats cover the plan)."""
+    confirmed = sum(int(g["party_size"]) for g in guests if g.get("attending"))
+    declined_seats = sum(int(g["party_size"]) for g in guests if not g.get("attending"))
+    return confirmed * 2 >= planned or confirmed + declined_seats >= planned
+
+
+def all_answered(planned: int, guests: list[dict]) -> bool:
+    """Every planned seat has a yes or a no against it."""
+    return sum(int(g["party_size"]) for g in guests) >= planned
+
+
 def right_size(saved_req: PartyRequest, saved_plan: PartyPlan, guests: list[dict],
                catalog: Catalog) -> dict | None:
     """When fewer guests confirm than were planned for, show the cheaper
@@ -328,6 +342,8 @@ def right_size(saved_req: PartyRequest, saved_plan: PartyPlan, guests: list[dict
     counts = live_counts(guests)
     if counts["confirmed"] == 0 or counts["confirmed"] >= saved_req.guest_count:
         return None
+    if not headcount_settled(saved_req.guest_count, guests):
+        return None  # too early: one early "yes" is not a smaller party
     live_req = live_request(saved_req, guests)
     current = reground(saved_plan, catalog, live_req.guest_count)
     draft = cheapest_compliant_draft(live_req, catalog)
@@ -338,9 +354,72 @@ def right_size(saved_req: PartyRequest, saved_plan: PartyPlan, guests: list[dict
     if not report.passed or cheap.total_cost >= current.total_cost - 0.005:
         return None
     return {"available": True, "confirmed": counts["confirmed"],
+            "final": all_answered(saved_req.guest_count, guests),
             "current_total": current.total_cost, "new_total": cheap.total_cost,
             "savings": round(current.total_cost - cheap.total_cost, 2),
             "plan": cheap.model_dump(), **diff_lines(current, cheap)}
+
+
+# ---------------------------------------------------------------------------
+# Apply — the host accepts a verified way forward and it becomes the plan
+# ---------------------------------------------------------------------------
+class ApplyError(Exception):
+    def __init__(self, reason: str, message: str, minimum: float | None = None) -> None:
+        super().__init__(message)
+        self.reason, self.message, self.minimum = reason, message, minimum
+
+
+def apply(saved: dict, guests: list[dict], catalog: Catalog, action: str,
+          budget: float | None = None) -> tuple[PartyRequest, PartyPlan, VerificationReport]:
+    """Turn a proposal into the saved plan. Everything is recomputed here from
+    the saved selections and the live guest list — a client can never hand us
+    a plan to store. Returns the new (request, plan, report); the report has
+    passed for every verifiable need, or ApplyError says why nothing can.
+
+    action = "fix"        the attention/unverifiable fix (repair, else cheapest compliant)
+             "right_size" the cheaper verified plan for the confirmed headcount
+             "budget"     re-plan at `budget` (the honest minimum, or more)
+    """
+    saved_req = PartyRequest.model_validate(saved["request"])
+    saved_plan = PartyPlan.model_validate(saved["plan"])
+    if action == "budget":
+        if budget is None or budget <= 0:
+            raise ApplyError("bad_budget", "A budget above zero is required.")
+        saved_req = saved_req.model_copy(update={"budget": float(budget)})
+    counts = live_counts(guests)
+    headcount = counts["confirmed"] if counts["confirmed"] > 0 else saved_req.guest_count
+    live_req = live_request(saved_req, guests)
+    excluded = unverifiable_needs(live_req.dietary_restrictions)
+    keep = [n for n in split_needs(live_req.dietary_restrictions) if n.lower() not in {e.lower() for e in excluded}]
+    check_req = live_req.model_copy(update={"dietary_restrictions": "; ".join(keep)})
+    current = reground(saved_plan, catalog, check_req.guest_count)
+
+    if action == "right_size":
+        rs = right_size(saved_req, saved_plan, guests, catalog)
+        if not rs or not rs.get("available"):
+            raise ApplyError("no_right_size", "There is no cheaper verified plan for the confirmed headcount yet.")
+        plan = PartyPlan.model_validate(rs["plan"])
+    elif action in ("fix", "budget"):
+        report = verify_plan(current, check_req, catalog)
+        if report.passed:
+            plan = current  # nothing broken (a budget change alone): keep the host's selections
+        else:
+            fix = propose_fix(saved_plan, current, check_req, catalog)
+            if not fix.get("available"):
+                raise ApplyError("no_verified_plan", fix.get("message", "No verified plan is possible."),
+                                 fix.get("minimum_feasible_budget"))
+            plan = PartyPlan.model_validate(fix["plan"])
+    else:
+        raise ApplyError("bad_action", "action must be fix, right_size or budget.")
+
+    # planned headcount: right-sizing adopts the confirmed number; a fix for an
+    # overflow grows the plan to it; an allergy fix at 5 of 14 keeps "14 planned".
+    planned = headcount if action == "right_size" else max(saved_req.guest_count, headcount)
+    new_req = saved_req.model_copy(update={"guest_count": planned})
+    final = verify_plan(plan, check_req.model_copy(update={"guest_count": headcount}), catalog)
+    if not final.passed:  # defence in depth: never save an unverified plan
+        raise ApplyError("no_verified_plan", "The proposed plan did not verify at the live headcount.")
+    return new_req, plan, final
 
 
 # ---------------------------------------------------------------------------
@@ -349,10 +428,11 @@ def right_size(saved_req: PartyRequest, saved_plan: PartyPlan, guests: list[dict
 _CACHE: dict[str, tuple[str, dict]] = {}
 
 
-def _fingerprint(guests: list[dict]) -> str:
+def _fingerprint(guests: list[dict], saved: dict | None = None) -> str:
     rows = sorted((g["guest_key"], int(bool(g["attending"])), int(g["party_size"]),
                    g.get("dietary", "")) for g in guests)
-    return hashlib.sha256(json.dumps(rows).encode()).hexdigest()
+    payload = [rows, saved["request"] if saved else None, saved["plan"] if saved else None]
+    return hashlib.sha256(json.dumps(payload, default=str, sort_keys=True).encode()).hexdigest()
 
 
 def _headline(state: str, counts: dict, planned: int, attention: list[dict]) -> str:
@@ -367,7 +447,7 @@ def _headline(state: str, counts: dict, planned: int, attention: list[dict]) -> 
 
 
 def build_status(plan_id: str, saved: dict, guests: list[dict], catalog: Catalog) -> dict:
-    fp = _fingerprint(guests)
+    fp = _fingerprint(guests, saved)
     cached = _CACHE.get(plan_id)
     if cached and cached[0] == fp:
         return cached[1]

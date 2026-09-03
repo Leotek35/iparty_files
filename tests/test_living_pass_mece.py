@@ -44,7 +44,7 @@ PASS_PROFILES = [p for p in PROFILES_MECE if p["expect"] in ("pass", "pass_sanit
 # Which fix strategies the matrix actually exercised — a dead repair path that
 # always falls through to "cheapest compliant" still yields verified fixes, so
 # only a coverage assertion can catch it (mutation-tested).
-OBSERVED: dict[str, set[str]] = {"overflow": set(), "allergy": set()}
+OBSERVED: dict[str, set[str]] = {"overflow": set(), "allergy": set(), "apply": set()}
 
 
 @pytest.fixture(scope="module")
@@ -108,6 +108,11 @@ class Pass:
                             headers={"X-Host-Token": self.host_token})
         assert r.status_code == 200
         return r.json()["guests"]
+
+    def apply(self, action: str, budget: float | None = None):
+        body = {"action": action} if budget is None else {"action": action, "budget": budget}
+        return self.client.post(f"/api/v1/plans/{self.plan_id}/apply", json=body,
+                                headers={"X-Host-Token": self.host_token})
 
 
 def _live_req(req, guests):
@@ -174,10 +179,29 @@ def test_living_pass_rsvp_waves(p, client):
             _assert_verified_plan(fix["plan"], live_req, budget)
             assert fix["new_total"] == pytest.approx(
                 PartyPlan.model_validate(fix["plan"]).total_cost, abs=0.01)
+            # ---- the host accepts it: it becomes the saved plan, verified for everyone coming
+            r = lp.apply("fix")
+            assert r.status_code == 200, r.text
+            applied = r.json()["status"]
+            assert applied["state"] == "verified" and applied["fix"] is None and applied["llm_calls"] == 0
+            assert applied["saved_total"] == pytest.approx(fix["new_total"], abs=0.01)
+            assert applied["planned_guests"] == over and applied["confirmed_guests"] == over
+            assert lp.status()["state"] == "verified"  # durable, not just the response
+            OBSERVED["apply"].add("fix")
         else:
             assert fix["reason"] in ("BUDGET_INFEASIBLE", "CONSTRAINTS_UNSATISFIABLE")
+            r = lp.apply("fix")
+            assert r.status_code == 409 and r.json()["detail"]["error"] == "no_verified_plan"
             if fix["reason"] == "BUDGET_INFEASIBLE":
-                assert fix["minimum_feasible_budget"] > budget
+                minimum = fix["minimum_feasible_budget"]
+                assert minimum > budget
+                # ---- the honest minimum is a real way out, not just a number
+                r = lp.apply("budget", budget=minimum)
+                assert r.status_code == 200, r.text
+                applied = r.json()["status"]
+                assert applied["state"] == "verified" and applied["budget"] == pytest.approx(minimum)
+                assert applied["saved_total"] <= minimum + 0.01
+                OBSERVED["apply"].add("budget")
 
     # ---- wave 3: a guest declares a peanut allergy -------------------------
     lp = Pass(client, body)
@@ -196,6 +220,14 @@ def test_living_pass_rsvp_waves(p, client):
         OBSERVED["allergy"].add(fix["strategy"])
         _assert_verified_plan(fix["plan"], live_req, budget)
         assert not any("peanut" in m["allergens"] for m in fix["plan"]["menu"])
+        r = lp.apply("fix")
+        assert r.status_code == 200, r.text
+        applied = r.json()
+        confirmed = applied["status"]["confirmed_guests"]
+        assert applied["status"]["state"] == "verified"
+        assert applied["status"]["planned_guests"] == max(planned, confirmed)  # an allergy fix never shrinks the plan
+        assert not any("peanut" in m["allergens"] for m in applied["plan"]["menu"])
+        assert not any("peanut" in m["allergens"] for m in lp.client.get(f"/api/v1/plans/{lp.plan_id}").json()["menu"])
     else:
         assert s["state"] == "verified", (s["state"], _codes(s))
 
@@ -233,3 +265,5 @@ def test_the_minimal_repair_path_is_really_exercised():
     cheapest-compliant reshuffle and this is the only test that would notice."""
     assert "repair" in OBSERVED["overflow"], OBSERVED
     assert "repair" in OBSERVED["allergy"], OBSERVED
+    assert "fix" in OBSERVED["apply"], OBSERVED  # accepting a fix was exercised across the matrix
+    # (the re-plan-at-minimum way out is pinned by tests/test_living_apply.py)

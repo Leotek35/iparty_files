@@ -104,9 +104,11 @@ def verify_plan(plan: PartyPlan, request: PartyRequest, catalog: Catalog) -> Ver
     forbidden = parse_forbidden_allergens(request.dietary_restrictions)
     if forbidden:
         unsafe = [m.name for m in plan.menu if forbidden & set(m.allergens)]
+        # name only the allergens actually present, in plain words ("tree nut", not "tree_nut")
+        present = sorted({a for m in plan.menu for a in m.allergens if a in forbidden})
         check(not unsafe, "ALLERGEN_VIOLATION", "error",
               f"Unsafe for '{request.dietary_restrictions}': {', '.join(unsafe)} "
-              f"contain {', '.join(sorted(forbidden))}.")
+              f"contain {', '.join(a.replace('_', ' ') for a in present)}.")
         safe_servings = sum(m.servings for m in plan.menu if not (forbidden & set(m.allergens)))
         check(safe_servings >= request.guest_count, "INSUFFICIENT_SAFE_FOOD", "error",
               f"Only {safe_servings} allergen-safe servings for {request.guest_count} guests.")

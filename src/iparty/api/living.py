@@ -15,6 +15,7 @@ from __future__ import annotations
 import hmac
 import re
 import secrets
+from typing import Literal
 
 from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -121,7 +122,7 @@ def _public_pass(saved: dict) -> dict:
 # --------------------------------------------------------------- endpoints
 @router.post("/plans", status_code=201)
 async def create_living_pass(request: PartyRequest, http: Request) -> dict:
-    if not limiter.allow(f"lp:{client_key(http)}", settings.LIVING_CREATE_RATE_PER_MIN, burst=5):
+    if not limiter.allow(f"lp:{client_key(http)}", settings.LIVING_CREATE_RATE_PER_MIN, burst=10):
         raise HTTPException(status_code=429, detail="Too many plans. Please slow down.",
                             headers={"Retry-After": "10"})
     planner = TTLPartyPlanner(_r._client, _r._catalog, _r._orchestrator)
@@ -211,6 +212,43 @@ def living_status(plan_id: str, host_token: str | None = None,
     _require_host(saved, x_host_token, host_token)
     guests = store.guests_for(plan_id)
     return living.build_status(plan_id, saved, guests, _r._catalog)
+
+
+class Apply(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["fix", "right_size", "budget"]
+    budget: float | None = Field(default=None, gt=0, le=1_000_000)
+
+
+@router.post("/plans/{plan_id}/apply")
+def apply_proposal(plan_id: str, body: Apply, http: Request, host_token: str | None = None,
+                   x_host_token: str | None = Header(default=None)) -> dict:
+    """The host accepts a verified fix, the right-size plan, or a new budget.
+    Recomputed server-side from the saved selections and the live guest list,
+    verified again at the live headcount, then saved — the plan id, host token
+    and guest list are untouched. 409 when nothing verifiable exists."""
+    saved = _load(plan_id)
+    _require_host(saved, x_host_token, host_token)
+    if not limiter.allow(f"lp-apply:{client_key(http)}", settings.LIVING_RSVP_RATE_PER_MIN, burst=10):
+        raise HTTPException(status_code=429, detail={"error": "rate_limited",
+                            "message": "Too many changes; please slow down."})
+    guests = store.guests_for(plan_id)
+    try:
+        new_req, new_plan, report = living.apply(saved, guests, _r._catalog, body.action, body.budget)
+    except living.ApplyError as exc:
+        raise HTTPException(status_code=409, detail={
+            "error": exc.reason, "message": exc.message, "minimum_feasible_budget": exc.minimum,
+        }) from exc
+    store.update_plan(plan_id, new_req.model_dump(mode="json"), new_plan.model_dump(), report.model_dump())
+    saved = _load(plan_id)
+    return {
+        "applied": body.action,
+        "status": living.build_status(plan_id, saved, guests, _r._catalog),
+        "pass": _public_pass(saved),
+        "plan": new_plan.model_dump(),
+        "request": new_req.model_dump(mode="json"),
+    }
 
 
 @router.get("/plans/{plan_id}/guests")

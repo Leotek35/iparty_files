@@ -93,6 +93,15 @@ class PlanStore:
                  json.dumps(request, default=str), json.dumps(plan), json.dumps(verification)),
             )
 
+    def update_plan(self, plan_id: str, request: dict, plan: dict, verification: dict) -> None:
+        """The host accepted a verified fix / right-size / new budget: the saved
+        selections change, the id, host token and guest list do not."""
+        with self._tx() as c:
+            c.execute(
+                "UPDATE plans SET request_json=?, plan_json=?, verification_json=? WHERE plan_id=?",
+                (json.dumps(request, default=str), json.dumps(plan), json.dumps(verification), plan_id),
+            )
+
     def get_plan(self, plan_id: str) -> dict | None:
         with self._tx() as c:
             row = c.execute("SELECT * FROM plans WHERE plan_id=?", (plan_id,)).fetchone()

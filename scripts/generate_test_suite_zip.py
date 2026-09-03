@@ -30,6 +30,11 @@ SUITE_FILES = [
     "tests/test_mece_gap_partitions.py",
     "tests/test_living_pass_mece.py",
     "tests/test_living_pass_api.py",
+    "tests/test_living_right_size.py",
+    "tests/test_ux_guards.py",
+    "tests/ui/__init__.py",
+    "tests/ui/test_ui_matrix.py",
+    "scripts/ui_matrix.py",
 ]
 
 ZIP_NAME = "iparty_deep_testing_suite.zip"

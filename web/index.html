@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --canvas:#F5F5F7; --surface:#FFFFFF; --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#AEAEB2;
+  --canvas:#F5F5F7; --surface:#FFFFFF; --ink:#1D1D1F; --ink-2:#5F5F64; --ink-3:#6B6B70; /* AA on canvas/surface/fill */
   --hairline:rgba(0,0,0,.10); --fill:#EDEDF0;
   --band:#1D1D1F; --band-text:#F5F5F7; --band-dim:#98989D;
   --verify:#1D9A50; --verify-text:#177B3F; --verify-soft:#E7F6EE;
@@ -86,7 +86,7 @@ body{
 @keyframes fadein{to{opacity:1}}
 
 /* verification checklist — the orchestration, visible */
-.checks{padding:18px 26px 6px; display:grid; gap:2px}
+.checks{padding:18px 26px 6px; display:grid; grid-template-columns:minmax(0,1fr); gap:2px}
 .chk{display:flex; align-items:center; gap:12px; padding:9px 0; font-size:15px;
   border-bottom:0.5px solid var(--fill); opacity:0; animation:rowIn .4s ease forwards}
 .chk:last-child{border-bottom:none}
@@ -113,11 +113,11 @@ body{
 .perf::before{left:-40px}.perf::after{right:-40px}
 
 .pass-body{padding:20px 26px 24px}
-.receipt{display:grid; gap:9px}
+.receipt{display:grid; grid-template-columns:minmax(0,1fr); gap:9px} /* minmax(0,1fr): a long line item must never widen the card */
 .line{display:flex; align-items:baseline; gap:8px; font-size:15px}
-.line .what{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.line .dots{flex:1; border-bottom:1px dotted rgba(0,0,0,.22); transform:translateY(-4px)}
-.line .amt{font-size:14px; font-weight:600}
+.line .what{min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis} /* min-width:0 so the ellipsis can happen; without it the amount escapes the card on phones */
+.line .dots{flex:1; min-width:12px; border-bottom:1px dotted rgba(0,0,0,.22); transform:translateY(-4px)}
+.line .amt{flex:none; white-space:nowrap; font-size:14px; font-weight:600}
 .total{display:flex; justify-content:space-between; align-items:baseline;
   margin-top:14px; padding-top:14px; border-top:1px solid var(--hairline)}
 .total .lbl{font-size:12px; font-weight:700; color:var(--ink-2); letter-spacing:.08em}
@@ -151,6 +151,7 @@ body{
 
 /* ===== Planner form: iOS grouped list ===== */
 .stage{max-width:560px; margin:0 auto; padding:56px 24px 96px; display:grid; gap:26px}
+.stage > *{min-width:0} /* grid items must shrink to the phone, never widen the track */
 .stage-title{text-align:center}
 .stage-title h2{font-size:32px; font-weight:800; letter-spacing:-.028em}
 .stage-title p{margin-top:8px; font-size:16px; color:var(--ink-2)}
@@ -195,17 +196,17 @@ button:focus-visible,a:focus-visible{outline:none; box-shadow:0 0 0 3.5px rgba(0
 
 .fb{margin-top:20px; padding:18px; background:var(--canvas); border-radius:16px; text-align:center}
 .fb p{font-size:15px; font-weight:600; margin-bottom:12px}
-.fb-row{display:flex; gap:10px; justify-content:center}
+.fb-row{display:flex; flex-wrap:wrap; gap:10px; justify-content:center}
 .fb-row .btn-quiet{background:var(--surface); min-width:86px; border:0.5px solid var(--hairline)}
 
 /* ---- Living Pass: the plan that re-checks itself as guests RSVP ---- */
-.cta.live{background:var(--verify)} .cta.live:hover{background:var(--verify-text)}
+.cta.live{background:var(--verify-text)} .cta.live:hover{background:#125F31} /* white text needs the darker green for AA */
 .living{margin-top:22px; padding:18px; background:var(--canvas); border-radius:18px; border:0.5px solid var(--hairline)}
 .lv-head{display:flex; justify-content:space-between; align-items:center; gap:10px}
 .lv-eyebrow{font-size:11px; font-weight:800; letter-spacing:.12em; color:var(--verify-text)}
 .lv-live{font-size:11px; color:var(--ink-3)}
 .lv-lede{margin:8px 0 0; font-size:14px; color:var(--ink-2)}
-.lv-links{margin-top:12px; display:grid; gap:6px}
+.lv-links{margin-top:12px; display:grid; grid-template-columns:minmax(0,1fr); gap:6px}
 .lv-links label{font-size:12px; font-weight:600; color:var(--ink-2); margin-top:6px}
 .lv-row{display:flex; gap:8px}
 .lv-row input{flex:1; min-width:0; min-height:42px; border:0.5px solid var(--hairline); border-radius:var(--r-ctl);
@@ -229,8 +230,19 @@ button:focus-visible,a:focus-visible{outline:none; box-shadow:0 0 0 3.5px rgba(0
 .lv-nofix h4{color:var(--danger)}
 .lv-rem .what{color:var(--ink-3); text-decoration:line-through}
 .lv-fixtotal{display:flex; justify-content:space-between; gap:10px; margin-top:8px; font-size:14px; font-weight:600}
+.lv-actions{margin-top:12px; display:flex; flex-wrap:wrap; gap:8px}
+.lv-actions .cta,.lv-actions .btn-quiet{width:auto; font-size:14px; padding:12px 18px; min-height:44px; box-shadow:none}
+.lv-notice{margin:0 0 10px; padding:10px 14px; border-radius:12px; background:var(--verify-soft); color:var(--verify-text); font-size:14px; font-weight:600}
+.lv-notice-err{background:var(--danger-soft); color:var(--danger)}
 .lv-fixtotal .of{font-weight:400; color:var(--ink-2)}
 .lv-partial{margin-top:8px; font-size:13px; color:var(--warn); background:var(--warn-soft); padding:8px 10px; border-radius:10px}
+.lv-guests{margin-top:12px; font-size:14px}
+.lv-guests summary{cursor:pointer; font-weight:600; color:var(--ink-2); min-height:44px; display:flex; align-items:center}
+.lv-guests ul{margin:6px 0 0; padding-left:0; list-style:none; display:grid; grid-template-columns:minmax(0,1fr); gap:6px}
+.lv-guests li{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+.lv-yes,.lv-no{font-size:11px; font-weight:700; letter-spacing:.05em; padding:3px 8px; border-radius:var(--r-pill)}
+.lv-yes{color:var(--verify-text); background:var(--verify-soft)}
+.lv-no{color:var(--ink-2); background:var(--fill)}
 .fb-done{font-size:15px; font-weight:700; color:var(--verify-text)}
 
 /* honest refusal */
@@ -243,7 +255,7 @@ button:focus-visible,a:focus-visible{outline:none; box-shadow:0 0 0 3.5px rgba(0
 .refusal .min{margin-top:26px}
 .refusal .min .n{font-size:52px; font-weight:800; letter-spacing:-.035em}
 .refusal .min .l{font-size:13px; color:var(--ink-2); margin-top:4px}
-.refusal .binding{margin:24px auto 0; max-width:40ch; text-align:left; display:grid; gap:9px}
+.refusal .binding{margin:24px auto 0; max-width:40ch; text-align:left; display:grid; grid-template-columns:minmax(0,1fr); gap:9px}
 .refusal .binding div{font-size:14px; color:var(--ink-2); padding-left:18px; position:relative}
 .refusal .binding div::before{content:""; position:absolute; left:0; top:7px; width:7px; height:7px;
   border-radius:50%; background:var(--danger)}
@@ -268,6 +280,7 @@ footer{max-width:640px; margin:0 auto; padding:0 24px 60px; text-align:center; f
   .sealwrap{position:static; display:grid; justify-items:start; margin-top:14px}
   .seal-label{position:static; text-align:left; margin-top:4px}
   .field label{width:96px; font-size:14px}
+  .line .what{white-space:normal; overflow:visible; text-overflow:clip} /* phones: wrap the description — "×11" must never be the part that gets cut */
 }
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important; animation-delay:0s !important; transition-duration:.01ms !important}
@@ -324,7 +337,7 @@ body.has-theme .amb-motif{opacity:.09}
 .modal .m-head{padding:20px 24px 14px}
 .modal .m-head h3{font-size:21px; font-weight:800; letter-spacing:-.02em}
 .modal .m-head p{margin-top:4px; font-size:14px; color:var(--ink-2)}
-.modal form{display:grid}
+.modal form{display:grid; grid-template-columns:minmax(0,1fr)}
 .modal .actions{padding:16px 20px 20px; margin-top:4px}
 .m-err{margin:0 20px; padding:10px 14px; border-radius:12px; background:var(--danger-soft);
   color:var(--danger); font-size:13.5px; font-weight:600; display:none}
@@ -355,7 +368,7 @@ body.has-theme .amb-motif{opacity:.09}
 .chips{display:flex; flex-wrap:wrap; gap:8px; padding:10px 20px 14px}
 .chips button{font:inherit; font-size:13px; font-weight:600; color:var(--ink-2);
   background:var(--canvas); border:0.5px solid var(--hairline); border-radius:var(--r-pill);
-  padding:7px 13px; cursor:pointer; transition:transform .15s var(--spring), background .2s, color .2s}
+  min-height:44px; padding:9px 15px; cursor:pointer; transition:transform .15s var(--spring), background .2s, color .2s}
 .chips button:hover{background:var(--fill); color:var(--ink); transform:translateY(-1px)}
 .inspo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px}
 .inspo-card{background:var(--canvas); border-radius:14px; padding:13px 15px}
@@ -440,7 +453,7 @@ body.has-theme .amb-motif{opacity:.09}
       <div class="chips" id="theme-chips" aria-label="Popular themes">
         <button type="button" data-t="Bluey">Bluey</button><button type="button" data-t="Space">Space</button><button type="button" data-t="Dinosaur">Dinosaur</button><button type="button" data-t="Mermaid">Mermaid</button><button type="button" data-t="Minecraft">Minecraft</button><button type="button" data-t="Neon glow">Neon glow</button><button type="button" data-t="Frozen">Frozen</button>
       </div>
-      <div class="field"><label for="dietary_restrictions">Allergies</label><input id="dietary_restrictions" value="gluten-free" placeholder="Optional — e.g. nut allergy" /></div>
+      <div class="field"><label for="dietary_restrictions">Allergies</label><input id="dietary_restrictions" value="" placeholder="Optional — e.g. nut allergy" /></div>
       <div style="padding:16px 20px 20px">
         <button class="cta" type="submit" id="submit-btn">Build my verified plan</button>
       </div>
@@ -501,7 +514,6 @@ document.addEventListener("input",(e)=>{
   }
 },true);
 
-(() => { const d=new Date(); d.setDate(d.getDate()+21); $("party_date").value=d.toISOString().slice(0,10); })();
 fetch("/health").then(r=>r.json()).then(h=>{ if(h.backend) $("backend-tag").textContent=h.backend; }).catch(()=>{});
 
 // ============ Dynamic theme engine v2 (dataset-driven) ============
@@ -665,6 +677,8 @@ function inspoHTML(req){
 
 const fmt = (n)=>"$"+n.toFixed(2);
 const esc = (x)=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+// "14:00" -> "2:00 PM" in the viewer's locale; anything else passes through untouched.
+const fmtTime = (t)=>{ if(!/^\d{2}:\d{2}$/.test(t||"")) return t||""; const d=new Date("1970-01-01T"+t+":00"); return isNaN(d)?t:d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); };
 
 // ---- Email typo detection (mirror of server emailcheck.py) ----
 const COMMON_DOMAINS=["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com",
@@ -751,7 +765,7 @@ function planToMarkdown(p, req){
   lines.push("", "## Budget");
   p.line_items.forEach(li=>lines.push(`- ${li.description}${li.quantity>1?` ×${li.quantity}`:""} — $${li.subtotal.toFixed(2)}`));
   lines.push("", "## Schedule");
-  p.schedule.forEach(s=>lines.push(`- ${s.start}–${s.end}: ${s.activity}`));
+  p.schedule.forEach(s=>lines.push(`- ${fmtTime(s.start)}–${fmtTime(s.end)}: ${s.activity}`));
   lines.push("", "## Activities");
   p.activities.forEach(a=>lines.push(`- ${a}`));
   lines.push("", "## Supplies");
@@ -792,22 +806,39 @@ function checklistFor(data, req){
     ["Budget adds up", `${fmt(p.total_cost)} of ${fmt(req.budget)}`, true],
     ["Every guest fed", `${servings} servings · ${req.guest_count} guests`, false],
     ["Allergens checked", diet?`${esc(diet)} honored`:"no restrictions given", false],
-    ["Schedule holds together", first&&last?`${first.start} – ${last.end}`:"", false],
+    ["Schedule holds together", first&&last?`${esc(fmtTime(first.start))} – ${esc(fmtTime(last.end))}`:"", false],
   ];
+}
+
+function receiptHTML(p){
+  return p.line_items.map(li=>`
+    <div class="line"><span class="what">${esc(li.description)}${li.quantity>1?` ×${li.quantity}`:""}</span><span class="dots"></span><span class="amt mono">${fmt(li.subtotal)}</span></div>`).join("");
+}
+function menuHTML(p, req){
+  const diet = (req.dietary_restrictions||"").trim();
+  return p.menu.map(m=>`
+    <div class="menu-line"><span>${esc(m.name)}</span>${diet?`<span class="safe-chip">CHECKED</span>`:`<span class="serves mono">serves ${m.servings}</span>`}</div>`).join("");
+}
+// After the host accepts a fix, the pass above the Living panel must show the plan that is now saved.
+function refreshPassInPlace(plan, req){
+  const pass = document.querySelector("#result .pass"); if(!pass || !plan || !req) return;
+  const rc = pass.querySelector(".pass-body > .receipt"); if(rc) rc.innerHTML = receiptHTML(plan);
+  const sum = pass.querySelector(".total .sum"); if(sum) sum.textContent = fmt(plan.total_cost);
+  const of = pass.querySelector(".total .of"); if(of) of.textContent = `of ${fmt(req.budget)}`;
+  const meta = pass.querySelector(".pass-band .meta"); if(meta) meta.textContent = `${req.honoree_name} turns ${req.honoree_age} · ${req.guest_count} guests · ${plan.venue}`;
+  const menuSect = [...pass.querySelectorAll(".sect")].find(x=>/^MENU/.test(x.textContent.trim())); if(menuSect) menuSect.innerHTML = `<h3>MENU</h3>${menuHTML(plan, req)}`;
+  const fill = $("budget-fill"); if(fill) fill.style.width = Math.min(100,(plan.total_cost/req.budget)*100).toFixed(1)+"%";
 }
 
 function renderPass(data, req){
   const p = data.plan;
   const checks = checklistFor(data, req).map(([w,d,mono])=>`
     <div class="chk"><span class="mark">${TICK}</span><span class="what">${w}</span><span class="detail ${mono?"mono":""}">${d}</span></div>`).join("");
-  const items = p.line_items.map(li=>`
-    <div class="line"><span class="what">${esc(li.description)}${li.quantity>1?` ×${li.quantity}`:""}</span><span class="dots"></span><span class="amt mono">${fmt(li.subtotal)}</span></div>`).join("");
-  const sched = p.schedule.map(s=>`<div class="slot"><span class="t mono">${esc(s.start)}–${esc(s.end)}</span><span>${esc(s.activity)}</span></div>`).join("");
+  const items = receiptHTML(p);
+  const sched = p.schedule.map(s=>`<div class="slot"><span class="t mono">${esc(fmtTime(s.start))}–${esc(fmtTime(s.end))}</span><span>${esc(s.activity)}</span></div>`).join("");
   const acts = p.activities.map(a=>`<span class="tag">${esc(a)}</span>`).join("");
   const supplies = p.supplies.map(a=>`<span class="tag">${esc(a)}</span>`).join("");
-  const diet = req.dietary_restrictions.trim();
-  const menu = p.menu.map(m=>`
-    <div class="menu-line"><span>${esc(m.name)}</span>${diet?`<span class="safe-chip">CHECKED</span>`:`<span class="serves mono">serves ${m.servings}</span>`}</div>`).join("");
+  const menu = menuHTML(p, req);
   const pct = Math.min(100,(p.total_cost/req.budget)*100).toFixed(1);
   const passno = String(Math.floor(Math.random()*899999)+100000);
 
@@ -961,7 +992,7 @@ function openBooking(p, req){
       if(det.did_you_mean){ showDidYouMean(err, det, $("bk-email"), "bk-fix"); }
       else{
         const msg = r.status===429 ? "You've already requested the maximum bookings for this session."
-          : r.status===422 ? "Please check your name, email, and phone — something didn't validate."
+          : r.status===422 ? (fieldMessage(d) || "Please check your name, email, and phone — something didn't validate.")
           : det.message || "Booking failed — please try again.";
         err.textContent = msg; err.classList.add("on");
       }
@@ -993,7 +1024,25 @@ function renderInfeasible(detail, req){
     <p class="why">${why}</p>
     ${(!dietary && min)?`<div class="min"><div class="n mono display">$${min.toFixed(0)}</div><div class="l">is where a workable party for ${req.guest_count} guests starts</div></div>`:""}
     ${binding?`<div class="binding">${binding}</div>`:""}
+    ${(!dietary && min)?`<div class="actions"><button class="cta" id="retry-min">Plan it at $${Math.ceil(min)}</button></div>`:""}
   </article>`;
+  const retry = $("retry-min");
+  if(retry){ retry.addEventListener("click",()=>{ $("budget").value = String(Math.ceil(min)); $("party-form").requestSubmit(); }); }
+}
+
+// A pydantic 422 carries the field's own reason ("uses a disposable email domain…");
+// show that instead of a generic shrug.
+function fieldMessage(d){
+  const arr = Array.isArray(d && d.detail) ? d.detail : [];
+  const f = arr.find(x => x && x.msg);
+  if(!f) return "";
+  // "Value error, contact_email uses a disposable…" -> "Your email uses a disposable…"
+  const names = {contact_email:"Your email", contact_phone:"Your phone number", name:"Your name", notes:"Your note"};
+  let m = String(f.msg).replace(/^Value error,\s*/, "");
+  const field = (Array.isArray(f.loc) ? f.loc[f.loc.length-1] : "") || "";
+  m = m.replace(/^(contact_email|contact_phone|name|notes)\b/, (k)=>names[k]);
+  if(names[field] && !/^Your /.test(m)) m = `${names[field]}: ${m}`;
+  return m;
 }
 
 function renderUnavailable(){
@@ -1080,23 +1129,36 @@ function renderLivingShell(links){
     <p class="lv-lede">Send the invite link. Every RSVP re-checks this plan — portions, place settings, budget and any allergies guests list — and hands you a verified fix if something breaks.</p>
     <div class="lv-links">
       <label for="lv-invite">Invite link — send to guests</label>
-      <div class="lv-row"><input id="lv-invite" class="mono" readonly value="${esc(links.invite_url)}"><button class="btn-quiet" id="lv-copy">Copy</button></div>
-      <label for="lv-host">Your host link — bookmark it to check back</label>
+      <div class="lv-row"><input id="lv-invite" class="mono" readonly value="${esc(links.invite_url)}"><button class="btn-quiet" id="lv-copy">Copy</button>${navigator.share?`<button class="btn-quiet" id="lv-share">Share…</button>`:""}</div>
+      <label for="lv-host">Your host link — private; bookmark it to check back</label>
       <div class="lv-row"><input id="lv-host" class="mono" readonly value="${esc(links.host_url)}"><button class="btn-quiet" id="lv-copy2">Copy</button></div>
     </div>
     <div id="lv-status" class="lv-status" aria-live="polite"></div>
   </div>`;
   $("lv-copy").addEventListener("click",(e)=>copyText($("lv-invite").value, e.target));
   $("lv-copy2").addEventListener("click",(e)=>copyText($("lv-host").value, e.target));
+  const share = $("lv-share");
+  if(share){ share.addEventListener("click", async ()=>{
+    try{ await navigator.share({ title:"You're invited", text:"You're invited — RSVP here:", url:$("lv-invite").value }); }
+    catch(_){ /* user dismissed the sheet */ }
+  }); }
 }
 
 async function refreshLiving(){
   if(!LIVING) return;
   try{
-    const r = await fetch(`/api/v1/plans/${encodeURIComponent(LIVING.planId)}/status`,{headers:{"X-Host-Token":LIVING.hostToken}});
-    if(r.status===401){ const s=$("lv-status"); if(s) s.innerHTML = `<div class="note">This host link isn't valid.</div>`; return; }
+    const hdr = {headers:{"X-Host-Token":LIVING.hostToken}};
+    const [r, g] = await Promise.all([
+      fetch(`/api/v1/plans/${encodeURIComponent(LIVING.planId)}/status`, hdr),
+      fetch(`/api/v1/plans/${encodeURIComponent(LIVING.planId)}/guests`, hdr),
+    ]);
+    if(r.status===401){ const s=$("lv-status"); if(s) s.innerHTML = `<div class="note">This host link isn't valid — check you copied the whole link.</div>`; const st=$("lv-stamp"); if(st) st.textContent=""; return; }
+    if(r.status===404){ const s=$("lv-status"); if(s) s.innerHTML = `<div class="note">This party can't be found — the link may be out of date or the party was removed.</div>`; const st=$("lv-stamp"); if(st) st.textContent=""; return; }
     if(!r.ok) throw new Error("status "+r.status);
-    renderLiving(await r.json());
+    const status = await r.json();
+    status._guests = g.ok ? (await g.json()).guests : [];
+    LIVING.guests = status._guests;
+    renderLiving(status);
   }catch(_){ const s=$("lv-stamp"); if(s) s.textContent="offline — retrying"; }
 }
 
@@ -1112,7 +1174,10 @@ function renderLiving(s){
   const stamp=$("lv-stamp"); if(stamp) stamp.textContent = "re-checked just now · 0 model calls";
   const pill = {awaiting:"lv-wait", verified:"lv-ok", attention:"lv-attn", unverifiable:"lv-unv"}[s.state] || "lv-wait";
   const needs = (s.dietary_needs||[]).map(n=>`<span class="tag">${esc(n)}</span>`).join("");
-  const attention = (s.attention||[]).map(a=>`<li><span class="lv-code mono">${esc(a.code)}</span>${esc(a.message)}</li>`).join("");
+  // Plain-language findings only; the machine code rides along as data for support/debugging.
+  const attention = (s.attention||[]).map(a=>`<li data-code="${esc(a.code)}">${esc(a.message)}</li>`).join("");
+  const guests = (s._guests||[]);
+  const guestList = guests.length ? `<details class="lv-guests"><summary>Who's responded (${guests.length})</summary><ul>${guests.map(g=>`<li><span class="${g.attending?"lv-yes":"lv-no"}">${g.attending?"Going":"Can't make it"}</span> ${esc(g.name)}${g.attending&&g.party_size>1?` <span class="mono">×${g.party_size}</span>`:""}${g.dietary?` <span class="tag">${esc(g.dietary)}</span>`:""}</li>`).join("")}</ul></details>` : "";
   const line = (li, sign, cls)=>`<div class="line ${cls}"><span class="what">${sign} ${esc(li.description)}${li.quantity>1?` ×${li.quantity}`:""}</span><span class="dots"></span><span class="amt mono">${fmt(li.subtotal)}</span></div>`;
 
   let fixHTML = "";
@@ -1124,13 +1189,20 @@ function renderLiving(s){
       <div class="receipt">${(fix.added||[]).map(li=>line(li,"+","")).join("")}${(fix.removed||[]).map(li=>line(li,"−","lv-rem")).join("")}</div>
       <div class="lv-fixtotal"><span>New total</span><span class="mono">${fmt(fix.new_total)} <span class="of">(${sign}${fmt(delta)} vs now · budget ${fmt(fix.budget)})</span></span></div>
       ${fix.covers_unverifiable===false ? `<div class="lv-partial">Doesn't cover: ${(fix.excluded_needs||[]).map(esc).join(", ")} — confirm that with the guest or a certified vendor.</div>` : ""}
+      <div class="lv-actions"><button class="cta live" data-apply="fix">Use this fix — make it the plan</button></div>
     </div>`;
   } else if(fix && !fix.available){
-    fixHTML = `<div class="lv-fix lv-nofix"><h4>NO VERIFIED FIX WITHIN BUDGET</h4><p>${esc(fix.message||"")}${fix.minimum_feasible_budget ? ` Minimum for this guest list: <span class="mono">${fmt(fix.minimum_feasible_budget)}</span>.` : ""}</p></div>`;
+    const min = fix.minimum_feasible_budget;
+    fixHTML = `<div class="lv-fix lv-nofix"><h4>NO VERIFIED FIX WITHIN BUDGET</h4><p>${esc(fix.message||"")}${min ? ` Minimum for this guest list: <span class="mono">${fmt(min)}</span>.` : ""}</p>
+      ${min ? `<div class="lv-actions"><button class="cta live" data-apply="budget" data-budget="${Math.ceil(min)}">Re-plan at ${fmt(Math.ceil(min))}</button></div>` : ""}</div>`;
   }
   const rs = s.right_size;
   const rsHTML = (rs && rs.available)
-    ? `<div class="lv-fix"><h4>RIGHT-SIZE IT</h4><p>${rs.confirmed} confirmed — the cheapest verified plan for that headcount is <span class="mono">${fmt(rs.new_total)}</span>, <b>${fmt(rs.savings)} less</b> than your current selections.</p></div>`
+    ? (rs.final
+        ? `<div class="lv-fix lv-resize"><h4>EVERYONE HAS ANSWERED — ${rs.confirmed} COMING</h4><p>The cheapest verified plan for ${rs.confirmed} guests is <span class="mono">${fmt(rs.new_total)}</span> — <b>${fmt(rs.savings)} less</b> than your current selections.</p>
+            <div class="lv-actions"><button class="cta live" data-apply="right_size">Right-size to ${rs.confirmed} — save ${fmt(rs.savings)}</button></div></div>`
+        : `<div class="lv-fix lv-resize"><h4>IF IT STAYS AT ${rs.confirmed}</h4><p>Once RSVPs settle, the cheapest verified plan for ${rs.confirmed} guests is <span class="mono">${fmt(rs.new_total)}</span> — <b>${fmt(rs.savings)} less</b> than your current selections. No rush; this updates as more people respond.</p>
+            <div class="lv-actions"><button class="btn-quiet" data-apply="right_size">Right-size to ${rs.confirmed} now</button></div></div>`)
     : "";
 
   box.innerHTML = `
@@ -1138,8 +1210,47 @@ function renderLiving(s){
     <div class="lv-counts mono">${s.confirmed_guests} confirmed of ${s.planned_guests} planned · ${s.responses.going} going · ${s.responses.declined} can't make it · now ${fmt(s.current_total)} of ${fmt(s.budget)}</div>
     ${needs ? `<div class="lv-needs"><span class="lv-k">Needs on the list</span><div class="tags">${needs}</div></div>` : ""}
     ${attention ? `<ul class="lv-attn-list">${attention}</ul>` : ""}
-    ${fixHTML}${rsHTML}`;
+    ${fixHTML}${rsHTML}${guestList}`;
+  box.querySelectorAll("[data-apply]").forEach(b=>b.addEventListener("click", ()=>applyProposal(b.dataset.apply, b.dataset.budget ? Number(b.dataset.budget) : null, b)));
 }
+
+// The host accepts a verified way forward. The server recomputes it from the
+// saved selections and the live guest list — nothing from this page is trusted
+// as a plan — then the panel and the pass above it show what is now saved.
+async function applyProposal(action, budget, btn){
+  if(!LIVING) return;
+  const was = btn.textContent; btn.disabled = true; btn.textContent = "Verifying…";
+  try{
+    const r = await fetch(`/api/v1/plans/${encodeURIComponent(LIVING.planId)}/apply`, {method:"POST",
+      headers:{"Content-Type":"application/json","X-Host-Token":LIVING.hostToken},
+      body:JSON.stringify(budget ? {action, budget} : {action})});
+    const d = await r.json().catch(()=>({}));
+    if(r.status===409){ const det=(d&&d.detail)||{}; notice(det.message || "That plan can't be verified for the current guest list.", true); return; }
+    if(r.status===429){ notice("Too many changes in a minute — give it a moment.", true); return; }
+    if(!r.ok){ notice("Couldn't save that — try again.", true); return; }
+    track("living_applied",{action});
+    refreshPassInPlace(d.plan, d.request);
+    const st = d.status; st._guests = LIVING.guests || [];
+    renderLiving(st);
+    notice(action==="right_size" ? `Right-sized — verified for ${st.confirmed_guests}.` : `Plan updated — verified for ${st.confirmed_guests} confirmed.`, false);
+  }catch(_){ notice("Network hiccup — try again.", true); }
+  finally{ if(document.body.contains(btn)){ btn.disabled=false; btn.textContent=was; } }
+}
+function notice(text, isError){
+  const box=$("lv-status"); if(!box) return;
+  let n=$("lv-notice"); if(!n){ n=document.createElement("div"); n.id="lv-notice"; n.setAttribute("role","status"); box.prepend(n); }
+  n.className = "lv-notice" + (isError ? " lv-notice-err" : ""); n.textContent = text;
+  clearTimeout(notice._t); notice._t = setTimeout(()=>{ if(n.parentNode) n.remove(); }, 6000);
+}
+
+// Default the party date to a Saturday about three weeks out — the form should
+// submit untouched, and that is when most parents actually plan.
+(function(){
+  const d = $("party_date"); if(!d || d.value) return;
+  const t = new Date(); t.setDate(t.getDate()+21); while(t.getDay()!==6) t.setDate(t.getDate()+1);
+  const pad = (n)=>String(n).padStart(2,"0");
+  d.value = `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`;
+})();
 
 // A host returning via their bookmarked link lands straight on the live status.
 (function(){

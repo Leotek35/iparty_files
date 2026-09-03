@@ -65,6 +65,23 @@ a static, ungrounded document — there is nothing to re-check against.
 States: `awaiting` · `verified` · `attention` (fix attached) · `unverifiable`
 (need flagged by name; any fix is marked `covers_unverifiable: false`).
 
+4. **Right-size** — when fewer confirm than were planned for, the status
+   carries the cheapest verified plan for the real headcount and the savings.
+   It is offered only once the picture is real: at least half the planned
+   seats have confirmed, or every planned seat has answered (`final: true`).
+   One early "yes" is not a smaller party — the 100-profile UI matrix showed
+   the card landing after the first RSVP and reading as a demand to downsize.
+5. **Apply** — every proposal on the host panel is a button. `POST
+   /api/v1/plans/<id>/apply` with `{"action": "fix" | "right_size" |
+   "budget", "budget"?}` recomputes the proposal server-side from the saved
+   selections and the live guest list (a client can never hand in a plan),
+   verifies it again at the live headcount, and saves it — the plan id, host
+   token and guest list are untouched. Accepting an overflow fix grows the
+   planned headcount to the confirmed one; an allergy fix keeps it; right-
+   sizing adopts it. When nothing verifiable exists the answer is a 409 with
+   the honest minimum budget, and "Re-plan at $min" is the way out. Every
+   later RSVP re-verifies against the plan that is now saved.
+
 ## API
 
 | Endpoint | Who | Purpose |
@@ -74,6 +91,7 @@ States: `awaiting` · `verified` · `attention` (fix attached) · `unverifiable`
 | `GET /api/v1/plans/{id}/rsvp` | guest | the invitation + `confirmed_guests` (count only) |
 | `POST /api/v1/plans/{id}/rsvp` | guest | respond / update own response |
 | `GET /api/v1/plans/{id}/status` | host | live re-verification, attention items, verified fix, right-size |
+| `POST /api/v1/plans/{id}/apply` | host | accept the fix / right-size / a new budget → it becomes the saved plan |
 | `GET /api/v1/plans/{id}/guests` | host | names, party sizes, needs |
 
 Status contract: 201 / 200 / 401 bad host token / 404 unknown plan / 409
@@ -117,3 +135,15 @@ infeasible / 422 malformed / 429 rate-limited or guest list full / 503 backend.
   frontend guards (RSVP page renders only via `textContent`; host renderer
   escapes every server string; no over-claiming copy; form defaults pass the
   browser's own validation).
+- `tests/test_living_right_size.py` — the right-size gate (half confirmed, or
+  everyone answered) at the unit and API level, and plain-English allergen
+  copy.
+- `tests/test_living_apply.py` — accepting a fix / right-size / new budget:
+  the saved plan verifies for the live guests, the public pass agrees, the
+  guest list survives, credentials are required, nothing from the client is
+  ever stored as a plan, and a later RSVP re-verifies against the new plan.
+  The MECE waves apply the overflow and allergy fixes on every profile.
+- `tests/test_ux_guards.py` + `scripts/ui_matrix.py` — the browser matrix: all
+  100 profiles through the shipped host and guest pages on desktop and phone
+  (Playwright + axe-core), with static guards for every finding it produced.
+  See [docs/UX_MATRIX.md](UX_MATRIX.md).
