@@ -20,9 +20,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from ..core.config import settings
 from ..core.emailcheck import email_invalid_reason
 from ..core.ratelimit import client_key, limiter
+from ..pricing.vendors import VendorDirectory
 from .bookings import normalize_phone, reject_email_typos
 
 router = APIRouter(tags=["vendors"])
+
+_directory = VendorDirectory.from_settings()
 
 _lock = threading.Lock()
 _total = 0
@@ -101,6 +104,28 @@ def vendors_summary() -> dict:
     """Counts only — no PII."""
     with _lock:
         return {"total_leads": _total}
+
+
+@router.get("/vendors/lookup")
+def vendor_lookup(sku: str, near: str, http: Request, limit: int = 5) -> dict:
+    """Real businesses near the host for one catalog line item — leads with
+    ratings and links, never prices. Works with no API keys (marketplace deep
+    links only) and degrades softly when a source is down."""
+    from . import routes as _r  # the live catalog (static + approved vendor rows)
+
+    near = "".join(ch for ch in near if ch >= " ").strip()
+    if len(near) < 3 or len(near) > 80:
+        raise HTTPException(status_code=422, detail={"error": "bad_location",
+                            "message": "Tell us where the party is (a city, neighborhood or ZIP)."})
+    item = _r._catalog.get(sku.strip().upper())
+    if item is None:
+        raise HTTPException(status_code=404, detail={"error": "unknown_sku", "message": "That item isn't in the catalog."})
+    if not limiter.allow(f"vl:{client_key(http)}", settings.VENDOR_LOOKUP_RATE_PER_MIN, burst=5):
+        raise HTTPException(status_code=429, detail={"error": "rate_limited",
+                            "message": "Too many lookups; please slow down."}, headers={"Retry-After": "10"})
+    result = _directory.lookup(item, near, limit=max(1, min(limit, 10)))
+    result["sources_configured"] = _directory.configured()
+    return result
 
 
 def reset_state() -> None:

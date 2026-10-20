@@ -1,6 +1,6 @@
 {
  "version": 3,
- "note": "Research-informed kids-to-teen party theme dataset (2026). Colors are community-documented palette values or genre conventions, NOT copyrighted assets; motifs reference procedural SVG names in the UI. bands: toddler(2-4) kids(5-8) tween(9-12) teen(13-17) any. v3 adds per-theme scenes: sky [top,mid] atmosphere gradient + fx particle layer (animated procedural motifs).",
+ "note": "Research-informed kids-to-teen party theme dataset (2026). Colors are community-documented palette values or genre conventions, NOT copyrighted assets; motifs reference procedural SVG names in the UI. bands: toddler(2-4) kids(5-8) tween(9-12) teen(13-17) any. v3 adds per-theme scenes: sky [top,mid] atmosphere gradient + fx particle layer (animated procedural motifs). v4 adds adult/occasion palettes (band 'adult' = 18+) and cultural celebration palettes for all ages.",
  "themes": [
   {
    "id": "bluey",
@@ -705,6 +705,332 @@
     "#FBD7E4"
    ],
    "fx": "hearts"
+  },
+  {
+   "id": "garden-brunch",
+   "band": "adult",
+   "keywords": [
+    "brunch",
+    "garden party",
+    "garden brunch",
+    "tea party",
+    "afternoon tea",
+    "luncheon",
+    "baby shower",
+    "bridal shower",
+    "shower"
+   ],
+   "c1": "#7FA86C",
+   "c2": "#F2D9A0",
+   "c3": "#EEF4E6",
+   "ac": "#4E7A3E",
+   "deep": "#2F4A26",
+   "canvas": "#F6F8F2",
+   "motif": "leaves",
+   "sky": [
+    "#CFE3C0",
+    "#F3F6EC"
+   ],
+   "fx": "leaves"
+  },
+  {
+   "id": "cocktail-hour",
+   "band": "adult",
+   "keywords": [
+    "cocktail",
+    "cocktail hour",
+    "mixology",
+    "speakeasy",
+    "gatsby",
+    "jazz",
+    "whisky",
+    "wine",
+    "wine tasting",
+    "vineyard"
+   ],
+   "c1": "#2B2E4A",
+   "c2": "#C9A24D",
+   "c3": "#E8DDC2",
+   "ac": "#8A6D1F",
+   "deep": "#1B1D32",
+   "canvas": "#F7F5EF",
+   "motif": "stars",
+   "sky": [
+    "#2B2E4A",
+    "#6B6F9A"
+   ],
+   "fx": "stars"
+  },
+  {
+   "id": "backyard-bbq",
+   "band": "adult",
+   "keywords": [
+    "bbq",
+    "barbecue",
+    "cookout",
+    "backyard",
+    "grill",
+    "picnic",
+    "tailgate",
+    "braai",
+    "lawn"
+   ],
+   "c1": "#C8552D",
+   "c2": "#E8B04B",
+   "c3": "#F7E7CF",
+   "ac": "#A63F1E",
+   "deep": "#6E2A14",
+   "canvas": "#FBF5EC",
+   "motif": "checkers",
+   "sky": [
+    "#F7D08A",
+    "#FBEFD6"
+   ],
+   "fx": "confetti"
+  },
+  {
+   "id": "game-night",
+   "band": "adult",
+   "keywords": [
+    "game night",
+    "board game",
+    "boardgame",
+    "trivia",
+    "tabletop",
+    "poker",
+    "casino",
+    "escape room",
+    "mystery",
+    "murder mystery"
+   ],
+   "c1": "#3D5A80",
+   "c2": "#EE6C4D",
+   "c3": "#E0FBFC",
+   "ac": "#2A4A6E",
+   "deep": "#1F3350",
+   "canvas": "#F3F7FA",
+   "motif": "gamepad",
+   "sky": [
+    "#98C1D9",
+    "#E0FBFC"
+   ],
+   "fx": "pixels"
+  },
+  {
+   "id": "milestone-gold",
+   "band": "adult",
+   "keywords": [
+    "30th",
+    "40th",
+    "50th",
+    "60th",
+    "70th",
+    "milestone",
+    "golden",
+    "anniversary",
+    "retirement",
+    "surprise"
+   ],
+   "c1": "#B8860B",
+   "c2": "#F3E1A0",
+   "c3": "#FFF8E1",
+   "ac": "#8C6508",
+   "deep": "#5C4305",
+   "canvas": "#FCF9F1",
+   "motif": "sparkles",
+   "sky": [
+    "#F3E1A0",
+    "#FFF8E1"
+   ],
+   "fx": "sparkles"
+  },
+  {
+   "id": "graduation",
+   "band": "adult",
+   "keywords": [
+    "graduation",
+    "grad",
+    "commencement",
+    "class of",
+    "diploma"
+   ],
+   "c1": "#1F3A93",
+   "c2": "#F4C542",
+   "c3": "#E8EEFF",
+   "ac": "#17307A",
+   "deep": "#122257",
+   "canvas": "#F3F5FC",
+   "motif": "confetti",
+   "sky": [
+    "#8FA6E8",
+    "#E8EEFF"
+   ],
+   "fx": "confetti"
+  },
+  {
+   "id": "fiesta",
+   "band": "any",
+   "keywords": [
+    "fiesta",
+    "quinceañera",
+    "quinceanera",
+    "quince",
+    "taco",
+    "mariachi",
+    "muertos",
+    "dia de los muertos",
+    "cinco de mayo",
+    "papel picado"
+   ],
+   "c1": "#E63946",
+   "c2": "#F4A261",
+   "c3": "#FDE68A",
+   "ac": "#B91C32",
+   "deep": "#7A1221",
+   "canvas": "#FFF7F0",
+   "motif": "burst",
+   "sky": [
+    "#F4A261",
+    "#FDE68A"
+   ],
+   "fx": "confetti"
+  },
+  {
+   "id": "mehndi",
+   "band": "any",
+   "keywords": [
+    "mehndi",
+    "sangeet",
+    "shaadi",
+    "diwali",
+    "holi",
+    "bollywood",
+    "indian",
+    "desi",
+    "henna",
+    "marigold"
+   ],
+   "c1": "#C2185B",
+   "c2": "#F9A825",
+   "c3": "#FFE0B2",
+   "ac": "#9C1449",
+   "deep": "#5E0B2C",
+   "canvas": "#FFF6EE",
+   "motif": "sparkles",
+   "sky": [
+    "#F9A825",
+    "#FFE0B2"
+   ],
+   "fx": "sparkles"
+  },
+  {
+   "id": "lunar",
+   "band": "any",
+   "keywords": [
+    "lunar new year",
+    "lunar",
+    "moon festival",
+    "mid-autumn",
+    "chinese",
+    "100-day",
+    "100 day",
+    "red egg",
+    "lion dance"
+   ],
+   "c1": "#B22222",
+   "c2": "#D4AF37",
+   "c3": "#FFE4C4",
+   "ac": "#8B1A1A",
+   "deep": "#5A0F0F",
+   "canvas": "#FFF6EC",
+   "motif": "orbs",
+   "sky": [
+    "#D4AF37",
+    "#FFE4C4"
+   ],
+   "fx": "stars"
+  },
+  {
+   "id": "mitzvah",
+   "band": "any",
+   "keywords": [
+    "mitzvah",
+    "bar mitzvah",
+    "bat mitzvah",
+    "kosher",
+    "hanukkah",
+    "shabbat",
+    "jewish"
+   ],
+   "c1": "#1E4D8C",
+   "c2": "#A9C7E8",
+   "c3": "#EEF4FB",
+   "ac": "#17407A",
+   "deep": "#102C52",
+   "canvas": "#F4F7FB",
+   "motif": "stars",
+   "sky": [
+    "#A9C7E8",
+    "#EEF4FB"
+   ],
+   "fx": "stars"
+  },
+  {
+   "id": "eid",
+   "band": "any",
+   "keywords": [
+    "eid",
+    "iftar",
+    "ramadan",
+    "halal",
+    "engagement",
+    "nikah",
+    "henna night"
+   ],
+   "c1": "#0F6E56",
+   "c2": "#D4A853",
+   "c3": "#E8F3EF",
+   "ac": "#0B5240",
+   "deep": "#083A2E",
+   "canvas": "#F2F8F5",
+   "motif": "stars",
+   "sky": [
+    "#9CCDBB",
+    "#E8F3EF"
+   ],
+   "fx": "stars"
+  },
+  {
+   "id": "corporate",
+   "band": "adult",
+   "keywords": [
+    "launch",
+    "product reveal",
+    "summit",
+    "hackathon",
+    "meetup",
+    "expo",
+    "pitch",
+    "conference",
+    "offsite",
+    "team",
+    "company",
+    "series b",
+    "series a",
+    "demo day"
+   ],
+   "c1": "#0F172A",
+   "c2": "#38BDF8",
+   "c3": "#E0F2FE",
+   "ac": "#0B4F80",
+   "deep": "#0A1020",
+   "canvas": "#F4F8FB",
+   "motif": "pixels",
+   "sky": [
+    "#38BDF8",
+    "#E0F2FE"
+   ],
+   "fx": "pixels"
   }
  ]
 }

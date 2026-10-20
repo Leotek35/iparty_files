@@ -35,13 +35,14 @@ import json
 from datetime import date
 from typing import Any
 
-from ..pricing.catalog import (
-    Catalog,
-    parse_forbidden_allergens,
-    requires_vegetarian,
-    unverifiable_dietary,
+from ..pricing.catalog import Catalog, CatalogItem, dietary_context, unverifiable_dietary
+from .composer import compose
+from .feasibility import (
+    KOSHER_SUPERVISION_SKU,
+    cheapest_compliant_draft,
+    minimum_feasible_budget,
+    units_to_cover,
 )
-from .feasibility import cheapest_compliant_draft, minimum_feasible_budget
 from .grounding import ground_draft
 from .models import PartyPlan, PartyRequest, PlanDraft, Selection, VerificationReport
 from .verifier import verify_plan
@@ -115,8 +116,11 @@ def _selections(plan: PartyPlan) -> tuple[str, list[Selection], list[Selection],
 
 def _draft(plan: PartyPlan, venue: str, food: list[Selection], supplies: list[Selection],
            activities: list[Selection]) -> PlanDraft:
+    """The host's selections as a draft — the concept (name, story, moments)
+    rides along so a repaired plan is still their party."""
     return PlanDraft(theme=plan.theme, venue_sku=venue, food=food, supplies=supplies,
-                     activities=activities, schedule=plan.schedule, notes=plan.notes)
+                     activities=activities, schedule=plan.schedule, notes=plan.notes,
+                     concept_name=plan.concept_name, story=plan.story, moments=list(plan.moments))
 
 
 def reground(plan: PartyPlan, catalog: Catalog, guests: int) -> PartyPlan:
@@ -179,31 +183,97 @@ def assess(saved_req: PartyRequest, saved_plan: PartyPlan, guests: list[dict],
 # ---------------------------------------------------------------------------
 # Minimal, verified repair of the host's own selections
 # ---------------------------------------------------------------------------
+def _same_family(a: CatalogItem, b: CatalogItem) -> bool:
+    """Siblings that can stand in for each other without changing the party:
+    same kind of thing, same safety profile, just a different size."""
+    return (a.category == b.category and a.subcategory == b.subcategory and a.unit == b.unit
+            and a.allergens == b.allergens and a.vegetarian == b.vegetarian
+            and a.certifications == b.certifications and a.min_age == b.min_age and a.max_age == b.max_age
+            and a.location_types == b.location_types
+            and {t for t in a.tags if t.startswith("contains:")} == {t for t in b.tags if t.startswith("contains:")})
+
+
+def requantify(selections: list[Selection], catalog: Catalog, guests: int) -> list[Selection]:
+    """The same items portioned for `guests`: fewer units of a flat item when
+    fewer people come, and a smaller same-family sibling (a 20-serving cake
+    instead of a 48-serving one) when that is cheaper and still covers."""
+    out: list[Selection] = []
+    for s in selections:
+        item = catalog.get(s.sku)
+        if item is None:
+            out.append(s)
+            continue
+        if item.unit != "flat" or (item.category == "food" and item.serves <= 0) or (
+                item.category == "supplies" and not item.is_tableware):
+            out.append(s)
+            continue
+        qty = min(s.quantity, units_to_cover(item, guests))
+        best_item, best_qty, best_price = item, qty, item.price_for(qty, guests)
+        for sib in catalog.by_category(item.category):
+            if sib.sku == item.sku or not _same_family(item, sib):
+                continue
+            sq = units_to_cover(sib, guests)
+            provided = sib.servings_for(sq, guests) if sib.category == "food" else sib.settings_for(sq, guests)
+            if provided < guests:
+                continue
+            price = sib.price_for(sq, guests)
+            if price < best_price - 0.005:
+                best_item, best_qty, best_price = sib, sq, price
+        out.append(Selection(sku=best_item.sku, quantity=best_qty))
+    return out
+
+
+_SHED_COURSES = ("drink", "snack", "side", "dessert", "cake")
+
+
+def _shed_steps(food: list[Selection], supplies: list[Selection], activities: list[Selection],
+                catalog: Catalog, guests: int):
+    """Ways to save money that keep the party recognisable, cheapest loss first:
+    an extra activity (dearest first), non-tableware supplies, then courses
+    around the meal, then the last activity down to the cheapest."""
+    acts = [(catalog.get(s.sku), s) for s in activities]
+    real = [(it, s) for it, s in acts if it is not None and not it.is_service]
+    if len(real) > 1:
+        dearest = max(real, key=lambda x: x[0].price_for(x[1].quantity, guests))
+        yield food, supplies, [s for s in activities if s is not dearest[1]]
+    for s in supplies:
+        it = catalog.get(s.sku)
+        if it is not None and not it.is_tableware:
+            yield food, [x for x in supplies if x is not s], activities
+    for course in _SHED_COURSES:
+        for s in food:
+            it = catalog.get(s.sku)
+            if it is not None and it.course == course:
+                yield [x for x in food if x is not s], supplies, activities
+
+
 def repair(saved_plan: PartyPlan, live_req: PartyRequest,
            catalog: Catalog) -> tuple[PartyPlan, VerificationReport] | None:
     guests = live_req.guest_count
-    forbidden = parse_forbidden_allergens(live_req.dietary_restrictions)
-    veg = requires_vegetarian(live_req.dietary_restrictions)
+    diet = dietary_context(live_req)
+    loc, age = live_req.location_type, live_req.honoree_age
 
-    def safe(item) -> bool:
-        if forbidden & item.allergens:
-            return False
-        return not (veg and not item.vegetarian)
+    def usable(item: CatalogItem) -> bool:
+        return item.min_age <= age <= item.max_age and item.within_capacity(guests) and loc in item.location_types
 
     venue, food, supplies, activities = _selections(saved_plan)
+    venue_item = catalog.get(venue)
+    venue_feeds = venue_item is not None and "includes:main" in venue_item.tags and diet.venue_ok(venue_item)
 
-    # 1. Drop food that is unsafe for the live dietary picture.
-    food = [s for s in food if (it := catalog.get(s.sku)) is not None and safe(it)]
+    # 1. Drop food that is unsafe for the live dietary picture (allergens,
+    #    vegetarian, certification, ingredient promises).
+    food = [s for s in food if (it := catalog.get(s.sku)) is not None and diet.safe(it)]
 
-    # 2. Add the cheapest safe servings until every confirmed guest is fed,
-    #    preferring one more unit of something already chosen (minimal diff).
-    safe_foods = [f for f in catalog.by_category("food") if safe(f) and f.serves > 0]
-    if not safe_foods:
+    # 2. Add the cheapest safe MAIN servings until every confirmed guest has a
+    #    meal, preferring one more unit of something already chosen (minimal diff).
+    safe_mains = [f for f in catalog.by_category("food") if diet.safe(f) and f.serves > 0 and f.course == "main"
+                  and "style:included" not in f.tags and usable(f)]
+    if not safe_mains and not venue_feeds:
         return None
 
-    def servings(sel: list[Selection]) -> int:
-        return sum(it.servings_for(s.quantity, guests)
-                   for s in sel if (it := catalog.get(s.sku)) is not None)
+    def main_servings(sel: list[Selection]) -> int:
+        return sum(it.servings_for(s.quantity, guests) for s in sel
+                   if (it := catalog.get(s.sku)) is not None and it.course == "main")
 
     def bump(sel: list[Selection], sku: str) -> list[Selection]:
         out, hit = [], False
@@ -216,11 +286,11 @@ def repair(saved_plan: PartyPlan, live_req: PartyRequest,
         return out if hit else [*out, Selection(sku=sku, quantity=1)]
 
     guard = 0
-    while servings(food) < guests and guard < 200:
+    while not venue_feeds and main_servings(food) < guests and guard < 200:
         guard += 1
         chosen = {s.sku for s in food}
         best = min(
-            safe_foods,
+            safe_mains,
             key=lambda f: (
                 (f.price_for(1, guests) / max(1, f.servings_for(1, guests)))
                 * (0.85 if f.sku in chosen else 1.0),
@@ -233,15 +303,9 @@ def repair(saved_plan: PartyPlan, live_req: PartyRequest,
 
     # 3. Add place settings until every confirmed guest has one.
     def capacity(sel: list[Selection]) -> int:
-        total = 0
-        for s in sel:
-            it = catalog.get(s.sku)
-            if it is None:
-                continue
-            total += guests if it.unit == "per_person" else it.serves * s.quantity
-        return total
+        return sum(it.settings_for(s.quantity, guests) for s in sel if (it := catalog.get(s.sku)) is not None)
 
-    options = [c for c in catalog.by_category("supplies") if c.unit == "per_person" or c.serves > 0]
+    options = [c for c in catalog.by_category("supplies") if c.is_tableware and usable(c)]
     guard = 0
     while options and capacity(supplies) < guests and guard < 200:
         guard += 1
@@ -249,7 +313,7 @@ def repair(saved_plan: PartyPlan, live_req: PartyRequest,
         best = min(
             options,
             key=lambda c: (
-                (c.price_for(1, guests) / max(1, guests if c.unit == "per_person" else c.serves))
+                (c.price_for(1, guests) / max(1, c.settings_for(1, guests)))
                 * (0.85 if c.sku in chosen else 1.0),
                 c.sku,
             ),
@@ -258,27 +322,45 @@ def repair(saved_plan: PartyPlan, live_req: PartyRequest,
             break
         supplies = bump(supplies, best.sku)
 
-    # 4. Keep an age-appropriate activity on the plan.
-    acts = [a for a in catalog.by_category("activities")
-            if a.min_age <= live_req.honoree_age <= a.max_age]
-    if not activities and acts:
-        cheapest = min(acts, key=lambda a: a.price_for(1, guests))
-        activities = [Selection(sku=cheapest.sku, quantity=1)]
+    # 4. Keep an age-appropriate activity on the plan; kosher needs supervision.
+    acts = [a for a in catalog.by_category("activities") if usable(a) and not a.is_service]
+    if not any((it := catalog.get(s.sku)) is not None and not it.is_service for s in activities) and acts:
+        cheapest = min(acts, key=lambda a: (a.price_for(1, guests), a.sku))
+        activities = [*activities, Selection(sku=cheapest.sku, quantity=1)]
+    if ("kosher" in diet.certifications and not any(s.sku == KOSHER_SUPERVISION_SKU for s in activities)
+            and catalog.get(KOSHER_SUPERVISION_SKU) is not None):
+        activities = [*activities, Selection(sku=KOSHER_SUPERVISION_SKU, quantity=1)]
 
     plan = ground_draft(_draft(saved_plan, venue, food, supplies, activities), catalog, guests)
     report = verify_plan(plan, live_req, catalog)
+    if report.passed:
+        return plan, report
 
-    # 5. If the only thing wrong now is money, trim the discretionary category
-    #    (activities) to the cheapest age-appropriate option before giving up
-    #    on the host's food and supply choices.
+    # 5. If the only thing wrong now is money, shed the least important things
+    #    first — never the meal, the settings or the last activity — and keep
+    #    the first version that verifies.
     errors = {v.code for v in report.violations if v.severity == "error"}
-    if errors and errors <= {"BUDGET_EXCEEDED"} and acts:
-        cheapest = min(acts, key=lambda a: a.price_for(1, guests))
-        trimmed = [Selection(sku=cheapest.sku, quantity=1)]
-        plan2 = ground_draft(_draft(saved_plan, venue, food, supplies, trimmed), catalog, guests)
-        report2 = verify_plan(plan2, live_req, catalog)
-        if report2.passed:
-            return plan2, report2
+    if errors <= {"BUDGET_EXCEEDED"}:
+        f2, s2, a2 = food, supplies, activities
+        for _ in range(12):
+            progressed = False
+            for f3, s3, a3 in _shed_steps(f2, s2, a2, catalog, guests):
+                plan2 = ground_draft(_draft(saved_plan, venue, f3, s3, a3), catalog, guests)
+                report2 = verify_plan(plan2, live_req, catalog)
+                if report2.passed:
+                    return plan2, report2
+                if plan2.total_cost < ground_draft(_draft(saved_plan, venue, f2, s2, a2), catalog, guests).total_cost:
+                    f2, s2, a2, progressed = f3, s3, a3, True
+                    break
+            if not progressed:
+                break
+        if acts:
+            cheapest = min(acts, key=lambda a: (a.price_for(1, guests), a.sku))
+            trimmed = [Selection(sku=cheapest.sku, quantity=1)] + [s for s in a2 if s.sku == KOSHER_SUPERVISION_SKU]
+            plan2 = ground_draft(_draft(saved_plan, venue, f2, s2, trimmed), catalog, guests)
+            report2 = verify_plan(plan2, live_req, catalog)
+            if report2.passed:
+                return plan2, report2
     return plan, report
 
 
@@ -291,12 +373,16 @@ def propose_fix(saved_plan: PartyPlan, current: PartyPlan, live_req: PartyReques
         plan, report = repaired
         return _fix_payload(plan, report, saved_plan, current, live_req, "repair")
 
-    draft = cheapest_compliant_draft(live_req, catalog)
-    if draft is not None:
+    # The host's choices can't be saved: a fresh concept for the live list
+    # (lean tier) beats a bare-minimum plan, when the budget allows one.
+    for strategy, draft in (("recomposed", compose(live_req, catalog, tier_override="essential")),
+                            ("cheapest_compliant", cheapest_compliant_draft(live_req, catalog))):
+        if draft is None:
+            continue
         plan = ground_draft(draft, catalog, live_req.guest_count)
         report = verify_plan(plan, live_req, catalog)
         if report.passed:
-            return _fix_payload(plan, report, saved_plan, current, live_req, "cheapest_compliant")
+            return _fix_payload(plan, report, saved_plan, current, live_req, strategy)
 
     minimum = minimum_feasible_budget(live_req, catalog)
     if minimum is not None and minimum > live_req.budget:
@@ -337,27 +423,28 @@ def all_answered(planned: int, guests: list[dict]) -> bool:
 
 def right_size(saved_req: PartyRequest, saved_plan: PartyPlan, guests: list[dict],
                catalog: Catalog) -> dict | None:
-    """When fewer guests confirm than were planned for, show the cheaper
-    verified plan for the real headcount — savings, not just shortfalls."""
+    """When fewer guests confirm than were planned for, show the SAME party
+    portioned for the real headcount — fewer units, smaller same-family
+    siblings — never a different, cheaper party. Savings, not shortfalls."""
     counts = live_counts(guests)
     if counts["confirmed"] == 0 or counts["confirmed"] >= saved_req.guest_count:
         return None
     if not headcount_settled(saved_req.guest_count, guests):
         return None  # too early: one early "yes" is not a smaller party
     live_req = live_request(saved_req, guests)
-    current = reground(saved_plan, catalog, live_req.guest_count)
-    draft = cheapest_compliant_draft(live_req, catalog)
-    if draft is None:
-        return None
-    cheap = ground_draft(draft, catalog, live_req.guest_count)
-    report = verify_plan(cheap, live_req, catalog)
-    if not report.passed or cheap.total_cost >= current.total_cost - 0.005:
+    n = live_req.guest_count
+    current = reground(saved_plan, catalog, n)
+    venue, food, supplies, activities = _selections(saved_plan)
+    sized = ground_draft(_draft(saved_plan, venue, requantify(food, catalog, n), requantify(supplies, catalog, n),
+                                activities), catalog, n)
+    report = verify_plan(sized, live_req, catalog)
+    if not report.passed or sized.total_cost >= current.total_cost - 0.005:
         return None
     return {"available": True, "confirmed": counts["confirmed"],
             "final": all_answered(saved_req.guest_count, guests),
-            "current_total": current.total_cost, "new_total": cheap.total_cost,
-            "savings": round(current.total_cost - cheap.total_cost, 2),
-            "plan": cheap.model_dump(), **diff_lines(current, cheap)}
+            "current_total": current.total_cost, "new_total": sized.total_cost,
+            "savings": round(current.total_cost - sized.total_cost, 2),
+            "plan": sized.model_dump(), **diff_lines(current, sized)}
 
 
 # ---------------------------------------------------------------------------

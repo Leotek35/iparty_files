@@ -16,8 +16,6 @@ from iparty.api import living as living_api
 from iparty.api.app import create_app
 from iparty.core.config import settings
 from iparty.core.store import store
-from iparty.planning.feasibility import cheapest_compliant_draft
-from iparty.planning.grounding import ground_draft
 from iparty.planning.living import all_answered, headcount_settled
 from iparty.planning.models import MenuItem, PartyPlan, PartyRequest, ScheduleSlot
 from iparty.planning.verifier import verify_plan
@@ -106,13 +104,19 @@ def test_right_size_appears_once_half_have_confirmed_and_is_verified(client):
     rs = s["right_size"]
     assert rs and rs["available"] and rs["confirmed"] == 10 and rs["final"] is False
     assert rs["savings"] > 0 and rs["new_total"] == pytest.approx(rs["current_total"] - rs["savings"], abs=0.01)
-    # the offer is a real verified plan for the live headcount
+    # the offer is the SAME party portioned for the live headcount — verified,
+    # cheaper than the current grounding, never a different (cheapest) party
     req = PartyRequest(honoree_name="Aria", honoree_age=6, party_date=FUTURE, guest_count=10,
                        budget=900.0, theme="Under the Sea", location_type="home")
     catalog = StaticCatalog()
-    cheap = ground_draft(cheapest_compliant_draft(req, catalog), catalog, 10)
-    assert verify_plan(cheap, req, catalog).passed
-    assert rs["new_total"] == pytest.approx(cheap.total_cost, abs=0.01)
+    offered = PartyPlan.model_validate(rs["plan"])
+    assert verify_plan(offered, req, catalog).passed
+    assert offered.total_cost == pytest.approx(rs["new_total"], abs=0.01)
+    saved = client.get(f"/api/v1/plans/{pid}").json()
+    assert offered.concept_name == saved["concept_name"] and offered.venue == saved["venue"]
+    assert [li.sku for li in offered.line_items if li.category == "activities"] == \
+        [li["sku"] for li in saved["line_items"] if li["category"] == "activities"]
+    assert rs["new_total"] < rs["current_total"]
 
 
 def test_right_size_is_final_when_every_seat_has_answered(client):

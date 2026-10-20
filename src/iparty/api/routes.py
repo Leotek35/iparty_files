@@ -19,7 +19,7 @@ from ..pricing.catalog import StaticCatalog
 router = APIRouter(tags=["planning"])
 
 _client = build_client()
-_catalog = StaticCatalog()
+_catalog = StaticCatalog.with_vendors()
 _orchestrator = TTLOrchestrator(name="party")
 
 

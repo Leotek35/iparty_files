@@ -25,9 +25,10 @@ guest list, and when it breaks, the fix is re-planned through the same engine
 | A guest… | Living Pass… |
 |---|---|
 | RSVPs and the headcount grows | re-checks portions, place settings and budget; hands you the fix: *"+1 fruit & veggie platter (+$38), still under budget"* |
-| declares a peanut allergy | re-checks every menu item's declared allergen data; swaps the unsafe item for the cheapest safe one |
-| RSVPs and fewer confirm than planned | shows the cheaper verified plan for the real headcount — savings, not just shortfalls |
-| declares a need the catalog can't verify (halal, kosher…) | flags it **by name** rather than silently "handling" it, and still fixes everything it *can* verify |
+| declares a peanut allergy | re-checks every menu item's declared allergen data; swaps the unsafe item for the cheapest safe main |
+| asks for halal or kosher | re-checks certifications course by course (kosher: every course, plus on-site supervision) and swaps in certified food |
+| RSVPs and fewer confirm than planned | shows **the same party portioned for the real headcount** — fewer units, smaller same-family siblings — and the savings; never a different, cheaper party |
+| declares a need the catalog can't verify (keto, paleo…) | flags it **by name** rather than silently "handling" it, and still fixes everything it *can* verify |
 
 Every status check is deterministic and model-free: it re-grounds the host's
 own selections at the live headcount and re-verifies. Zero LLM calls, instant,
@@ -55,18 +56,26 @@ a static, ungrounded document — there is nothing to re-check against.
      flat items don't — exactly what should trip "underscaled" when 24 show up);
    - the verifier runs against the live request (confirmed headcount, merged
      dietary picture) — its verdict is the status;
-   - on failure, `repair` keeps every selection it can, drops food unsafe for a
-     newly declared allergy, adds the cheapest safe servings / place settings
-     until covered, trims the discretionary category (activities) if money is
-     the only thing wrong, then verifies. If the host's choices can't be saved
-     within budget, the cheapest compliant plan is offered; if nothing fits,
-     the honest minimum budget is reported.
+   - on failure, `repair` keeps every selection it can, drops food unsafe for
+     the live dietary picture (allergens, vegetarian, certification, pork),
+     adds the cheapest safe **main-course** servings / place settings until
+     covered (and kosher supervision when asked), then verifies. If money is
+     the only thing wrong it sheds the least important things first — an
+     extra act, non-tableware supplies, drinks, snacks, sides, dessert, the
+     cake — never the meal, the settings or the last activity. If the host's
+     choices still can't be saved, a fresh lean **concept** for the live list
+     is offered (`recomposed`), then the cheapest compliant plan; if nothing
+     fits, the honest minimum budget is reported. The concept (name, story,
+     moments) rides along on every repair — it is still their party.
 
 States: `awaiting` · `verified` · `attention` (fix attached) · `unverifiable`
 (need flagged by name; any fix is marked `covers_unverifiable: false`).
 
 4. **Right-size** — when fewer confirm than were planned for, the status
-   carries the cheapest verified plan for the real headcount and the savings.
+   carries the same party portioned for the real headcount (`requantify`:
+   fewer units of flat items, a smaller same-family sibling such as a
+   20-serving cake instead of a 48-serving one) and the savings. When every
+   line already scales per head there is nothing to offer and none is made up.
    It is offered only once the picture is real: at least half the planned
    seats have confirmed, or every planned seat has answered (`final: true`).
    One early "yes" is not a smaller party — the 100-profile UI matrix showed

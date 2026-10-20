@@ -48,8 +48,18 @@ class Selection(BaseModel):
     quantity: int = Field(default=1, ge=1)
 
 
+class Moment(BaseModel):
+    """One beat of the concept — 'SIGNATURE: Mariachi at the entrance'."""
+    label: str = Field(..., min_length=1, max_length=40)
+    text: str = Field(..., min_length=1, max_length=300)
+
+
 class PlanDraft(BaseModel):
-    """What the planner (LLM or mock) returns: choices, not prices."""
+    """What the planner (LLM, composer or mock) returns: choices, not prices.
+
+    `theme` is the host's words (or a suggestion when they gave none); the
+    concept fields are the party's creative identity — a name, a two-line
+    story and the moments the schedule is built around."""
     theme: str
     venue_sku: str
     food: list[Selection] = Field(default_factory=list)
@@ -57,12 +67,16 @@ class PlanDraft(BaseModel):
     activities: list[Selection] = Field(default_factory=list)
     schedule: list[ScheduleSlot] = Field(default_factory=list)
     notes: str = ""
+    concept_name: str = Field(default="", max_length=120)
+    story: str = Field(default="", max_length=1200)
+    moments: list[Moment] = Field(default_factory=list)
 
 
 class LineItem(BaseModel):
     sku: str
     category: Literal["venue", "food", "supplies", "activities", "extras"]
     description: str
+    subcategory: str = ""                  # course / kind, from the catalog
     quantity: int = Field(default=1, ge=1)
     unit_price: float = Field(..., ge=0)   # set from catalog, never from the model
     subtotal: float = Field(..., ge=0)     # set from catalog
@@ -80,6 +94,8 @@ class MenuItem(BaseModel):
     servings: int = Field(..., ge=0)
     allergens: list[str] = Field(default_factory=list)   # from catalog, authoritative
     vegetarian: bool = True
+    course: str = ""                                     # main / side / snack / dessert / cake / drink
+    certifications: list[str] = Field(default_factory=list)
 
 
 class PartyPlan(BaseModel):
@@ -91,6 +107,9 @@ class PartyPlan(BaseModel):
     activities: list[str] = Field(default_factory=list)
     supplies: list[str] = Field(default_factory=list)
     notes: str = ""
+    concept_name: str = ""
+    story: str = ""
+    moments: list[Moment] = Field(default_factory=list)
 
     @computed_field
     @property

@@ -110,7 +110,9 @@ def guest_dietary(pid: str) -> tuple[str, int, int]:
     if last == "7":
         return ("peanut allergy", 1, 1)
     if last == "3":
-        return ("halal", 1, 1)
+        return ("keto", 1, 1)          # the catalog can't verify keto -> the honest 'unverifiable' state
+    if last == "9":
+        return ("halal", 1, 1)         # verifiable now: certified swaps, or still verified
     if last == "5":
         return ("", 8, 3)  # overflow -> attention on most plans
     return ("", 2, 1)
@@ -335,7 +337,7 @@ class Matrix:
             self.attach(page, errs)
             await page.goto(self.base + "/", wait_until="networkidle")
             for fid, val in (("honoree_name", "Layla"), ("honoree_age", "9"), ("party_date", FUTURE), ("guest_count", "20"),
-                             ("budget", "5000"), ("theme", "Garden"), ("dietary_restrictions", "strictly halal")):
+                             ("budget", "5000"), ("theme", "Garden"), ("dietary_restrictions", "strictly keto")):
                 await page.fill(f"#{fid}", val)
             await page.click("#submit-btn")
             await page.wait_for_function("() => /can.t be done|verify/i.test(document.getElementById('result').innerText)", timeout=30000)

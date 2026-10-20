@@ -71,6 +71,18 @@ body{
 .pass-band .eyebrow{font-size:11px; font-weight:700; letter-spacing:.14em; color:var(--band-dim)}
 .pass-band .title{font-size:30px; font-weight:800; letter-spacing:-.025em; margin-top:6px; line-height:1.1}
 .pass-band .meta{font-size:14px; color:var(--band-dim); margin-top:6px}
+.pass-band .story{font-size:15px; line-height:1.5; color:var(--band-text); opacity:.92; margin-top:12px; max-width:62ch}
+.moments{display:grid; gap:10px}
+.moment{display:grid; grid-template-columns:118px minmax(0,1fr); gap:12px; align-items:baseline; padding:9px 0; border-bottom:0.5px solid var(--fill); font-size:15px}
+.moment:last-child{border-bottom:none}
+.moment .k{font-size:11px; font-weight:700; letter-spacing:.09em; color:var(--ink-2); padding-top:3px}
+.course{font-size:11px; font-weight:700; letter-spacing:.09em; color:var(--ink-2); margin:14px 0 4px}
+.course:first-child{margin-top:0}
+.cert-chip{font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--verify-text); background:var(--verify-soft); padding:4px 9px; border-radius:var(--r-pill); flex:none}
+.veg{font-size:12px; color:var(--ink-2); margin-left:6px}
+.rgroup{font-size:11px; font-weight:700; letter-spacing:.09em; color:var(--ink-2); margin:12px 0 2px}
+.rgroup:first-child{margin-top:0}
+@media (max-width:480px){ .moment{grid-template-columns:1fr; gap:3px} }
 .sealwrap{position:absolute; top:20px; right:22px}
 .seal{
   width:64px; height:64px; border-radius:50%;
@@ -115,7 +127,7 @@ body{
 .pass-body{padding:20px 26px 24px}
 .receipt{display:grid; grid-template-columns:minmax(0,1fr); gap:9px} /* minmax(0,1fr): a long line item must never widen the card */
 .line{display:flex; align-items:baseline; gap:8px; font-size:15px}
-.line .what{min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis} /* min-width:0 so the ellipsis can happen; without it the amount escapes the card on phones */
+.line .what{min-width:0; overflow-wrap:anywhere} /* min-width:0 so the amount never escapes the card; long descriptions wrap */
 .line .dots{flex:1; min-width:12px; border-bottom:1px dotted rgba(0,0,0,.22); transform:translateY(-4px)}
 .line .amt{flex:none; white-space:nowrap; font-size:14px; font-weight:600}
 .total{display:flex; justify-content:space-between; align-items:baseline;
@@ -437,7 +449,7 @@ body.has-theme .amb-motif{opacity:.09}
 <main class="stage" id="planner">
   <div class="stage-title">
     <h2 class="display">Who are we celebrating?</h2>
-    <p>Six details. About a minute. Then watch it get checked.</p>
+    <p>A first birthday, a Sweet 16, a 40th, a gala — six details, about a minute, then watch the concept get checked.</p>
   </div>
 
   <section class="card group" aria-label="Party details">
@@ -449,11 +461,11 @@ body.has-theme .amb-motif{opacity:.09}
       <div class="field"><label for="budget">Budget</label><input id="budget" type="number" min="1" step="1" required value="650" /></div>
       <div class="field"><label for="location_type">Where</label>
         <select id="location_type"><option value="home">At home</option><option value="venue">A venue</option><option value="park">A park</option><option value="restaurant">A restaurant</option></select></div>
-      <div class="field"><label for="theme">Theme</label><input id="theme" value="Under the Sea" placeholder="Optional — we'll choose" /></div>
+      <div class="field"><label for="theme">Theme or occasion</label><input id="theme" value="Under the Sea" placeholder="Optional — Dino Dig, Sweet 16, Backyard BBQ, Halal Engagement…" /></div>
       <div class="chips" id="theme-chips" aria-label="Popular themes">
-        <button type="button" data-t="Bluey">Bluey</button><button type="button" data-t="Space">Space</button><button type="button" data-t="Dinosaur">Dinosaur</button><button type="button" data-t="Mermaid">Mermaid</button><button type="button" data-t="Minecraft">Minecraft</button><button type="button" data-t="Neon glow">Neon glow</button><button type="button" data-t="Frozen">Frozen</button>
+        <button type="button" data-t="Bluey">Bluey</button><button type="button" data-t="Space">Space</button><button type="button" data-t="Dinosaur">Dinosaur</button><button type="button" data-t="Mermaid">Mermaid</button><button type="button" data-t="Minecraft">Minecraft</button><button type="button" data-t="Spa day">Spa day</button><button type="button" data-t="Neon glow">Neon glow</button><button type="button" data-t="Sweet 16">Sweet 16</button><button type="button" data-t="Quinceañera">Quinceañera</button><button type="button" data-t="Backyard BBQ">Backyard BBQ</button><button type="button" data-t="Game night">Game night</button><button type="button" data-t="Garden brunch">Garden brunch</button><button type="button" data-t="Cocktail hour">Cocktail hour</button><button type="button" data-t="Black and gold">Black &amp; gold</button>
       </div>
-      <div class="field"><label for="dietary_restrictions">Allergies</label><input id="dietary_restrictions" value="" placeholder="Optional — e.g. nut allergy" /></div>
+      <div class="field"><label for="dietary_restrictions">Allergies &amp; needs</label><input id="dietary_restrictions" value="" placeholder="Optional — nut allergy, vegan, halal, kosher, no pork" /></div>
       <div style="padding:16px 20px 20px">
         <button class="cta" type="submit" id="submit-btn">Build my verified plan</button>
       </div>
@@ -658,19 +670,19 @@ document.querySelectorAll("#theme-chips button").forEach(b=>b.addEventListener("
 // ============ Inspo board (Pinterest/TikTok-style inspiration, curated) ============
 let INSPO = null;
 fetch("/static/inspo.json").then(r=>r.json()).then(d=>{ INSPO=d; }).catch(()=>{});
-function bandFor(age){ return age<=4?"toddler":age<=8?"kids":age<=12?"tween":"teen"; }
+function bandFor(age){ return age<=4?"toddler":age<=8?"kids":age<=12?"tween":age<=17?"teen":"adult"; }
 function inspoHTML(req){
   if(!INSPO) return "";
   const th = themeFor(req.theme);
   const t = (INSPO.themes||{})[th.id] || null;
   const band = bandFor(req.honoree_age);
-  const games = [...(t?[t.game]:[]), ...(((INSPO.games_by_band||{})[band])||[]).slice(0, t?2:3)];
+  const games = [...(t?[t.game]:[]), ...(((INSPO.games_by_band||{})[band]||(INSPO.games_by_band||{}).teen)||[]).slice(0, t?2:3)];
   const decor = t?t.decor:[], treats = t?t.treats:[];
   const q = encodeURIComponent(((req.theme||"").trim()||"birthday")+" party ideas");
   const link = (href,label)=>`<a href="${href}${q}" target="_blank" rel="noopener noreferrer">${label}</a>`;
   const card = (title,items)=>items.length?`<div class="inspo-card"><h4>${title}</h4><ul>${items.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"";
   return `<div class="sect"><h3>INSPO BOARD</h3>
-    <div class="inspo-grid">${card("DECOR",decor)}${card("GAMES · AGE "+req.honoree_age,games)}${card("TREATS",treats)}</div>
+    <div class="inspo-grid">${card("DECOR",decor)}${card(band==="adult"?"GAMES & MOMENTS":"GAMES · AGE "+req.honoree_age,games)}${card("TREATS",treats)}</div>
     <div class="inspo-links">${link("https://www.pinterest.com/search/pins/?q=","More inspo on Pinterest")}${link("https://www.tiktok.com/search?q=","Watch it on TikTok")}</div>
   </div>`;
 }
@@ -759,8 +771,10 @@ async function animateStages(){
 
 function planToMarkdown(p, req){
   const lines = [];
-  lines.push(`# ${p.theme} — ${req.honoree_name}'s Party`);
-  lines.push(`Venue: ${p.venue} · Guests: ${req.guest_count} · Date: ${req.party_date}`);
+  lines.push(`# ${p.concept_name || p.theme} — ${req.honoree_name}'s Party`);
+  if(p.story) lines.push("", p.story);
+  if(p.moments && p.moments.length){ lines.push("", "## The concept"); p.moments.forEach(m=>lines.push(`- ${m.label}: ${m.text}`)); }
+  lines.push("", `Venue: ${p.venue} · Guests: ${req.guest_count} · Date: ${req.party_date}`);
   lines.push(`Total: $${p.total_cost.toFixed(2)} (budget $${req.budget.toFixed(2)}) — verified`);
   lines.push("", "## Budget");
   p.line_items.forEach(li=>lines.push(`- ${li.description}${li.quantity>1?` ×${li.quantity}`:""} — $${li.subtotal.toFixed(2)}`));
@@ -810,14 +824,46 @@ function checklistFor(data, req){
   ];
 }
 
+const SERVICE_KINDS = new Set(["staffing","planning","transport","ceremony"]);
+const RECEIPT_GROUPS = [
+  ["THE PLACE", li=>li.category==="venue"],
+  ["THE TABLE", li=>li.category==="food"],
+  ["ENTERTAINMENT", li=>li.category==="activities" && !SERVICE_KINDS.has(li.subcategory||"")],
+  ["SERVICES", li=>li.category==="activities" && SERVICE_KINDS.has(li.subcategory||"")],
+  ["THE LOOK & TAKE-HOME", li=>li.category==="supplies"],
+  ["OTHER", li=>true],
+];
 function receiptHTML(p){
-  return p.line_items.map(li=>`
-    <div class="line"><span class="what">${esc(li.description)}${li.quantity>1?` ×${li.quantity}`:""}</span><span class="dots"></span><span class="amt mono">${fmt(li.subtotal)}</span></div>`).join("");
+  const used = new Set(); const parts = [];
+  for(const [label, pred] of RECEIPT_GROUPS){
+    const rows = p.line_items.filter(li=>!used.has(li) && pred(li)); rows.forEach(li=>used.add(li));
+    if(!rows.length) continue;
+    parts.push(`<div class="rgroup">${label}</div>` + rows.map(li=>`
+    <div class="line"><span class="what">${esc(li.description)}${li.quantity>1?` ×${li.quantity}`:""}</span><span class="dots"></span><span class="amt mono">${fmt(li.subtotal)}</span></div>`).join(""));
+  }
+  return parts.join("");
+}
+const COURSE_ORDER = ["main","side","snack","dessert","cake","drink",""];
+const courseLabel = (c)=>({main:"MAIN", side:"SIDES", snack:"SNACKS", dessert:"SWEETS", cake:"THE CAKE", drink:"DRINKS"}[c]||"MENU");
+function askedCerts(req){
+  const d = ((req.dietary_restrictions||"")+" "+(req.theme||"")).toLowerCase();
+  const out = []; if(/\b(halal|zabiha)\b/.test(d)) out.push("halal"); if(/\b(kosher|glatt)\b/.test(d)) out.push("kosher"); return out;
 }
 function menuHTML(p, req){
   const diet = (req.dietary_restrictions||"").trim();
-  return p.menu.map(m=>`
-    <div class="menu-line"><span>${esc(m.name)}</span>${diet?`<span class="safe-chip">CHECKED</span>`:`<span class="serves mono">serves ${m.servings}</span>`}</div>`).join("");
+  const certs = askedCerts(req);
+  const wantsVeg = /vegetarian|vegan|plant.based|pure veg|jain/i.test(diet+" "+(req.theme||""));
+  const byCourse = {}; p.menu.forEach(m=>{ (byCourse[m.course||""] ||= []).push(m); });
+  return COURSE_ORDER.filter(c=>byCourse[c]).map(c=>`<div class="course">${courseLabel(c)}</div>` + byCourse[c].map(m=>{
+    const chips = certs.filter(x=>(m.certifications||[]).includes(x)).map(x=>`<span class="cert-chip">${x.toUpperCase()}</span>`).join("");
+    const veg = wantsVeg && m.vegetarian ? `<span class="veg">(v)</span>` : "";
+    const right = chips || (diet?`<span class="safe-chip">CHECKED</span>`:`<span class="serves mono">serves ${m.servings}</span>`);
+    return `<div class="menu-line"><span>${esc(m.name)}${veg}</span>${right}</div>`;
+  }).join("")).join("");
+}
+function momentsHTML(p){
+  if(!p.moments || !p.moments.length) return "";
+  return `<div class="sect"><h3>THE CONCEPT</h3><div class="moments">${p.moments.map(m=>`<div class="moment"><span class="k">${esc(m.label).toUpperCase()}</span><span>${esc(m.text)}</span></div>`).join("")}</div></div>`;
 }
 // After the host accepts a fix, the pass above the Living panel must show the plan that is now saved.
 function refreshPassInPlace(plan, req){
@@ -826,7 +872,12 @@ function refreshPassInPlace(plan, req){
   const sum = pass.querySelector(".total .sum"); if(sum) sum.textContent = fmt(plan.total_cost);
   const of = pass.querySelector(".total .of"); if(of) of.textContent = `of ${fmt(req.budget)}`;
   const meta = pass.querySelector(".pass-band .meta"); if(meta) meta.textContent = `${req.honoree_name} turns ${req.honoree_age} · ${req.guest_count} guests · ${plan.venue}`;
+  const title = pass.querySelector(".pass-band .title"); if(title) title.textContent = plan.concept_name || plan.theme;
+  const story = pass.querySelector(".pass-band .story"); if(story) story.textContent = plan.story || "";
   const menuSect = [...pass.querySelectorAll(".sect")].find(x=>/^MENU/.test(x.textContent.trim())); if(menuSect) menuSect.innerHTML = `<h3>MENU</h3>${menuHTML(plan, req)}`;
+  const concept = [...pass.querySelectorAll(".sect")].find(x=>/^THE CONCEPT/.test(x.textContent.trim())); if(concept){ const html = momentsHTML(plan); if(html) concept.outerHTML = html; else concept.remove(); }
+  const ent = [...pass.querySelectorAll(".sect")].find(x=>/^ENTERTAINMENT/.test(x.textContent.trim())); if(ent) ent.innerHTML = `<h3>ENTERTAINMENT</h3><div class="tags">${plan.activities.map(a=>`<span class="tag">${esc(a)}</span>`).join("")}</div>`;
+  const look = [...pass.querySelectorAll(".sect")].find(x=>/^THE LOOK/.test(x.textContent.trim())); if(look) look.innerHTML = `<h3>THE LOOK &amp; TAKE-HOME</h3><div class="tags">${plan.supplies.map(a=>`<span class="tag">${esc(a)}</span>`).join("")}</div>`;
   const fill = $("budget-fill"); if(fill) fill.style.width = Math.min(100,(plan.total_cost/req.budget)*100).toFixed(1)+"%";
 }
 
@@ -846,9 +897,10 @@ function renderPass(data, req){
   <article class="pass" style="animation:heroIn .7s var(--spring) both">
     <div class="pass-band" id="pass-band">
       <div class="band-motif"></div>
-      <div class="eyebrow">IPARTY · VERIFIED PASS</div>
-      <div class="title display">${esc(p.theme)}</div>
+      <div class="eyebrow">IPARTY · VERIFIED PARTY CONCEPT</div>
+      <div class="title display">${esc(p.concept_name || p.theme)}</div>
       <div class="meta">${esc(req.honoree_name)} turns ${req.honoree_age} · ${req.guest_count} guests · ${esc(p.venue)}</div>
+      ${p.story?`<div class="story">${esc(p.story)}</div>`:""}
       <div class="sealwrap">
         <div class="seal">${TICK}</div>
         <div class="seal-label">VERIFIED</div>
@@ -864,10 +916,11 @@ function renderPass(data, req){
       </div>
       <div class="budget-track"><div class="budget-fill" id="budget-fill"></div></div>
 
+      ${momentsHTML(p)}
       <div class="sect"><h3>MENU</h3>${menu}</div>
       <div class="sect"><h3>RUN OF SHOW</h3>${sched}</div>
-      <div class="sect"><h3>ACTIVITIES</h3><div class="tags">${acts}</div></div>
-      <div class="sect"><h3>SUPPLIES</h3><div class="tags">${supplies}</div></div>
+      <div class="sect"><h3>ENTERTAINMENT</h3><div class="tags">${acts}</div></div>
+      <div class="sect"><h3>THE LOOK &amp; TAKE-HOME</h3><div class="tags">${supplies}</div></div>
       ${inspoHTML(req)}
       ${p.notes?`<div class="note">${esc(p.notes)}</div>`:""}
 
@@ -919,7 +972,7 @@ function openBooking(p, req){
     <div class="modal">
       <div class="m-head">
         <h3 class="display">Book this party</h3>
-        <p>${esc(p.theme)} · ${req.guest_count} guests · ${fmt(p.total_cost)} — a party specialist confirms every vendor before you pay anything.</p>
+        <p>${esc(p.concept_name || p.theme)} · ${req.guest_count} guests · ${fmt(p.total_cost)} — a party specialist confirms every vendor before you pay anything.</p>
       </div>
       <form id="book-form">
         <div class="field"><label for="bk-name">Your name</label><input id="bk-name" required maxlength="100" autocomplete="name" /></div>
@@ -971,7 +1024,7 @@ function openBooking(p, req){
             <div class="t-head" style="background:linear-gradient(140deg,${th.c1},${th.deep})">
               <div class="band-motif" style="background-image:${url.replace(/"/g,"&quot;")};background-size:${size}px"></div>
               <div class="eyebrow">IPARTY · PARTY TICKET</div>
-              <div class="t-title display">${esc(p.theme)}</div>
+              <div class="t-title display">${esc(p.concept_name || p.theme)}</div>
               <div class="t-meta">${esc(req.honoree_name)} turns ${req.honoree_age} · ${req.guest_count} guests · ${esc(req.party_date)}</div>
             </div>
             <div class="t-perf"></div>

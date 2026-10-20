@@ -105,17 +105,24 @@ def _public_pass(saved: dict) -> dict:
     return {
         "plan_id": saved["plan_id"], "created_at": saved["created_at"],
         "theme": plan["theme"], "venue": plan["venue"],
+        "concept_name": plan.get("concept_name", ""), "story": plan.get("story", ""),
+        "moments": plan.get("moments", []),
         "honoree_name": req["honoree_name"], "honoree_age": req["honoree_age"],
         "party_date": str(req["party_date"]), "location_type": req["location_type"],
         "planned_guests": req["guest_count"], "budget": req["budget"],
         "total_cost": plan["total_cost"],
         "verification": {"passed": ver["passed"], "checks_passed": ver["checks_passed"],
                          "checks_total": ver["checks_total"]},
-        "line_items": [{"description": li["description"], "quantity": li["quantity"],
+        "line_items": [{"sku": li["sku"], "category": li["category"], "subcategory": li.get("subcategory", ""),
+                        "description": li["description"], "quantity": li["quantity"],
                         "subtotal": li["subtotal"]} for li in plan["line_items"]],
-        "menu": [{"name": m["name"], "servings": m["servings"], "allergens": m["allergens"]}
+        "menu": [{"sku": m["sku"], "name": m["name"], "servings": m["servings"], "allergens": m["allergens"],
+                  "vegetarian": m.get("vegetarian", True), "course": m.get("course", ""),
+                  "certifications": m.get("certifications", [])}
                  for m in plan["menu"]],
         "schedule": plan["schedule"],
+        "activities": plan.get("activities", []), "supplies": plan.get("supplies", []),
+        "notes": plan.get("notes", ""),
     }
 
 
@@ -166,6 +173,8 @@ def get_invitation(plan_id: str) -> dict:
     sched = plan.get("schedule") or []
     return {
         "plan_id": plan_id, "theme": plan["theme"], "venue": plan["venue"],
+        "concept_name": plan.get("concept_name", ""), "story": plan.get("story", ""),
+        "moments": [m for m in plan.get("moments", []) if m.get("label", "").lower() != "take-home"][:4],
         "honoree_name": req["honoree_name"], "honoree_age": req["honoree_age"],
         "party_date": str(req["party_date"]), "location_type": req["location_type"],
         "starts": sched[0]["start"] if sched else None,

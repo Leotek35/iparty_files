@@ -22,7 +22,11 @@ class Settings(BaseSettings):
     LLM_BACKEND: Literal["mock", "anthropic"] = "mock"
     ANTHROPIC_API_KEY: str | None = None
     ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
-    ANTHROPIC_MAX_TOKENS: int = 2000
+    ANTHROPIC_MAX_TOKENS: int = 3000
+
+    # Mock backend: share of candidates deliberately broken to exercise the
+    # verifier / best-of-N path (0 = every mock candidate is the composer's concept).
+    MOCK_FLAW_RATE: float = Field(default=0.0, ge=0, le=1)
 
     # Circuit Breaker
     CB_FAILURE_THRESHOLD: int = Field(default=5, ge=1)
@@ -70,6 +74,15 @@ class Settings(BaseSettings):
     LIVING_RSVP_RATE_PER_MIN: int = Field(default=30, ge=1)
     LIVING_CREATE_RATE_PER_MIN: int = Field(default=30, ge=1)
     PUBLIC_BASE_URL: str | None = None  # e.g. https://iparty.app — used to build share links
+
+    # Vendor sources: real listings near the host (all optional; the catalog
+    # works without any of them). Keys are never logged or returned.
+    GOOGLE_PLACES_API_KEY: str | None = None
+    YELP_API_KEY: str | None = None
+    FOURSQUARE_API_KEY: str | None = None
+    OSM_FALLBACK_ENABLED: bool = False
+    VENDOR_LOOKUP_RATE_PER_MIN: int = Field(default=30, ge=1)
+    VENDOR_CATALOG_PATH: str = "data/vendor_catalog.jsonl"
 
     HOST: str = "0.0.0.0"
     PORT: int = Field(default=8000, ge=1, le=65535)

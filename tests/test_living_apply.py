@@ -111,13 +111,21 @@ def test_allergy_fix_keeps_the_planned_headcount(client):
     pid, hdr = _plan(client, guests=14, budget=650.0)
     for i in range(4):
         _rsvp(client, pid, f"g{i}")
-    _rsvp(client, pid, "Ali", dietary="peanut allergy")
+    # declare an allergy to something the saved menu actually contains, so the
+    # plan must break and the fix must keep every other promise
+    menu = client.get(f"/api/v1/plans/{pid}").json()["menu"]
+    present = sorted({a for m in menu for a in m["allergens"]})
+    assert present, menu
+    phrase = {"milk": "dairy allergy", "wheat": "gluten free", "egg": "egg allergy", "soy": "soy allergy",
+              "peanut": "peanut allergy", "tree_nut": "tree nut allergy", "fish": "fish allergy",
+              "shellfish": "shellfish allergy", "sesame": "sesame allergy"}[present[0]]
+    _rsvp(client, pid, "Ali", dietary=phrase)
     s = _status(client, pid, hdr)
     assert s["state"] == "attention" and "ALLERGEN_VIOLATION" in [a["code"] for a in s["attention"]]
     d = _apply(client, pid, hdr, "fix").json()
     assert d["status"]["state"] == "verified"
     assert d["status"]["planned_guests"] == 14 and d["status"]["confirmed_guests"] == 5
-    assert all("peanut" not in m["allergens"] for m in d["plan"]["menu"])
+    assert all(present[0] not in m["allergens"] for m in d["plan"]["menu"])
     assert _saved_is_verified_for_live_guests(pid)
 
 
@@ -162,7 +170,15 @@ def test_right_size_adopts_the_confirmed_headcount(client):
     for i in range(10):
         _rsvp(client, pid, f"g{i}")
     s = _status(client, pid, hdr)
-    assert s["right_size"] and s["right_size"]["available"]
+    if s["right_size"] is None:
+        # Only a party whose flat items can shrink has a cheaper same-party version;
+        # when every line already scales per head there is honestly nothing to offer.
+        saved = PartyPlan.model_validate(store.get_plan(pid)["plan"])
+        _, food, supplies, _ = living._selections(saved)
+        sized = living.requantify(food, CAT, 10) + living.requantify(supplies, CAT, 10)
+        assert [(x.sku, x.quantity) for x in sized] == [(x.sku, x.quantity) for x in food + supplies]
+        return
+    assert s["right_size"]["available"]
     new_total = s["right_size"]["new_total"]
     d = _apply(client, pid, hdr, "right_size").json()
     assert d["status"]["state"] == "verified"

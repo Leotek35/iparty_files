@@ -8,12 +8,16 @@ invariants the product promises:
   awaiting   nobody has said yes -> verified for the planned headcount
   exact      confirmed == planned -> still verified, nothing to fix
   overflow   30% more show up   -> either still verified (slack) or ATTENTION
-             with a fix that is itself verified against the live guest list
-             and inside budget — or an honest, correct minimum budget
+             (meal, settings, budget or venue capacity) with a fix that is
+             itself verified against the live guest list and inside budget —
+             or an honest, correct minimum budget
   allergy    a guest declares a peanut allergy -> if the saved menu contains
              peanut, ATTENTION with ALLERGEN_VIOLATION and a fix whose menu
              has no peanut; otherwise still verified
-  unverif.   a guest declares 'halal' -> UNVERIFIABLE, flagged by name, and
+  halal      a guest declares 'halal' -> ATTENTION if any meat course is not
+             halal-certified (or pork/alcohol is on the menu), with a fix that
+             swaps in certified food; otherwise still verified
+  unverif.   a guest declares 'keto' -> UNVERIFIABLE, flagged by name, and
              any fix is explicitly marked as not covering it
   shrink     half confirm -> still verified; cost never rises; any
              right-size suggestion is verified and actually cheaper
@@ -44,7 +48,8 @@ PASS_PROFILES = [p for p in PROFILES_MECE if p["expect"] in ("pass", "pass_sanit
 # Which fix strategies the matrix actually exercised — a dead repair path that
 # always falls through to "cheapest compliant" still yields verified fixes, so
 # only a coverage assertion can catch it (mutation-tested).
-OBSERVED: dict[str, set[str]] = {"overflow": set(), "allergy": set(), "apply": set()}
+OBSERVED: dict[str, set[str]] = {"overflow": set(), "allergy": set(), "halal": set(), "apply": set()}
+STRATEGIES = ("repair", "recomposed", "cheapest_compliant")
 
 
 @pytest.fixture(scope="module")
@@ -170,11 +175,11 @@ def test_living_pass_rsvp_waves(p, client):
         assert s["fix"] is None
     else:
         assert s["state"] == "attention", (s["state"], _codes(s))
-        assert _codes(s) & {"FOOD_UNDERSCALED", "SUPPLIES_UNDERSCALED", "BUDGET_EXCEEDED"}
+        assert _codes(s) & {"FOOD_UNDERSCALED", "MAIN_UNDERSCALED", "SUPPLIES_UNDERSCALED", "BUDGET_EXCEEDED", "GUEST_RANGE"}
         fix = s["fix"]
         assert fix is not None
         if fix["available"]:
-            assert fix["verified"] and fix["strategy"] in ("repair", "cheapest_compliant")
+            assert fix["verified"] and fix["strategy"] in STRATEGIES
             OBSERVED["overflow"].add(fix["strategy"])
             _assert_verified_plan(fix["plan"], live_req, budget)
             assert fix["new_total"] == pytest.approx(
@@ -210,7 +215,8 @@ def test_living_pass_rsvp_waves(p, client):
     s = lp.status()
     assert s["llm_calls"] == 0
     assert "peanut allergy" in s["dietary_needs"]
-    menu_has_peanut = any("peanut" in m["allergens"] for m in lp.saved["menu"])
+    nuts = {"peanut", "tree_nut"}  # 'peanut allergy' is read as a nut allergy: both are kept off the menu
+    menu_has_peanut = any(nuts & set(m["allergens"]) for m in lp.saved["menu"])
     live_req = _live_req(req, lp.guests())
     if menu_has_peanut:
         assert s["state"] == "attention", (s["state"], _codes(s))
@@ -219,29 +225,57 @@ def test_living_pass_rsvp_waves(p, client):
         assert fix is not None and fix["available"], fix
         OBSERVED["allergy"].add(fix["strategy"])
         _assert_verified_plan(fix["plan"], live_req, budget)
-        assert not any("peanut" in m["allergens"] for m in fix["plan"]["menu"])
+        assert not any(nuts & set(m["allergens"]) for m in fix["plan"]["menu"])
         r = lp.apply("fix")
         assert r.status_code == 200, r.text
         applied = r.json()
         confirmed = applied["status"]["confirmed_guests"]
         assert applied["status"]["state"] == "verified"
         assert applied["status"]["planned_guests"] == max(planned, confirmed)  # an allergy fix never shrinks the plan
-        assert not any("peanut" in m["allergens"] for m in applied["plan"]["menu"])
-        assert not any("peanut" in m["allergens"] for m in lp.client.get(f"/api/v1/plans/{lp.plan_id}").json()["menu"])
+        assert not any(nuts & set(m["allergens"]) for m in applied["plan"]["menu"])
+        assert not any(nuts & set(m["allergens"]) for m in lp.client.get(f"/api/v1/plans/{lp.plan_id}").json()["menu"])
     else:
         assert s["state"] == "verified", (s["state"], _codes(s))
 
-    # ---- wave 4: a need the catalog can't verify ---------------------------
+    # ---- wave 4a: a guest asks for halal — a promise the catalog can now keep
     lp = Pass(client, body)
     lp.fill(max(1, planned - 1))
     lp.rsvp(True, 1, "halal")
     s = lp.status()
+    assert s["llm_calls"] == 0 and "halal" in s["dietary_needs"]
+    live_req = _live_req(req, lp.guests())
+    uncertified = [m for m in lp.saved["menu"]
+                   if (it := CATALOG.get(m["sku"])) is not None and (
+                       (not it.vegetarian and "halal" not in it.certifications) or "contains:pork" in it.tags
+                       or "contains:alcohol" in it.tags)]
+    if uncertified:
+        assert s["state"] == "attention", (s["state"], _codes(s))
+        assert _codes(s) & {"CERTIFICATION_MISSING", "INGREDIENT_VIOLATION"}
+        fix = s["fix"]
+        assert fix is not None, s["headline"]
+        if fix["available"]:
+            OBSERVED["halal"].add(fix["strategy"])
+            _assert_verified_plan(fix["plan"], live_req, budget)
+            for m in fix["plan"]["menu"]:
+                it = CATALOG.get(m["sku"])
+                assert it.vegetarian or "halal" in it.certifications, it.name
+                assert "contains:pork" not in it.tags, it.name
+        else:
+            assert fix["reason"] in ("BUDGET_INFEASIBLE", "CONSTRAINTS_UNSATISFIABLE")
+    else:
+        assert s["state"] == "verified", (s["state"], _codes(s))
+
+    # ---- wave 4b: a need the catalog can't verify (keto) ------------------
+    lp = Pass(client, body)
+    lp.fill(max(1, planned - 1))
+    lp.rsvp(True, 1, "keto")
+    s = lp.status()
     assert s["state"] == "unverifiable", (s["state"], _codes(s))
-    assert "DIETARY_UNVERIFIABLE" in _codes(s) and s["unverifiable_needs"] == ["halal"]
-    assert "halal" in s["headline"] or "verified yet" in s["headline"]
+    assert "DIETARY_UNVERIFIABLE" in _codes(s) and s["unverifiable_needs"] == ["keto"]
+    assert "keto" in s["headline"] or "verified yet" in s["headline"]
     if s["fix"] is not None and s["fix"]["available"]:
         assert s["fix"]["covers_unverifiable"] is False
-        assert s["fix"]["excluded_needs"] == ["halal"]
+        assert s["fix"]["excluded_needs"] == ["keto"]
 
     # ---- wave 5: only half confirm -----------------------------------------
     lp = Pass(client, body)
@@ -257,6 +291,12 @@ def test_living_pass_rsvp_waves(p, client):
         assert rs["available"] and rs["savings"] > 0
         assert rs["new_total"] == pytest.approx(rs["current_total"] - rs["savings"], abs=0.01)
         _assert_verified_plan(rs["plan"], _live_req(req, lp.guests()), budget)
+        # the same party, smaller: venue, concept and every activity survive right-sizing
+        saved_plan = lp.saved
+        assert rs["plan"]["concept_name"] == saved_plan["concept_name"]
+        assert rs["plan"]["venue"] == saved_plan["venue"]
+        assert [li["sku"] for li in rs["plan"]["line_items"] if li["category"] == "activities"] == \
+            [li["sku"] for li in saved_plan["line_items"] if li["category"] == "activities"]
 
 
 def test_the_minimal_repair_path_is_really_exercised():
@@ -265,5 +305,6 @@ def test_the_minimal_repair_path_is_really_exercised():
     cheapest-compliant reshuffle and this is the only test that would notice."""
     assert "repair" in OBSERVED["overflow"], OBSERVED
     assert "repair" in OBSERVED["allergy"], OBSERVED
+    assert "repair" in OBSERVED["halal"], OBSERVED   # certified food swapped in, the rest of the party kept
     assert "fix" in OBSERVED["apply"], OBSERVED  # accepting a fix was exercised across the matrix
     # (the re-plan-at-minimum way out is pinned by tests/test_living_apply.py)

@@ -1,0 +1,531 @@
+{
+ "note": "Generated from web/themes.json by scripts/build_catalog.py",
+ "palettes": [
+  {
+   "id": "bluey",
+   "band": "toddler",
+   "keywords": [
+    "bluey",
+    "heeler",
+    "blue dog",
+    "cattle dog"
+   ]
+  },
+  {
+   "id": "paw-pups",
+   "band": "toddler",
+   "keywords": [
+    "paw patrol",
+    "patrol",
+    "rescue pups",
+    "puppy"
+   ]
+  },
+  {
+   "id": "melon",
+   "band": "toddler",
+   "keywords": [
+    "cocomelon",
+    "watermelon",
+    "melon"
+   ]
+  },
+  {
+   "id": "dino-dig",
+   "band": "kids",
+   "keywords": [
+    "dino",
+    "dinosaur",
+    "jurassic",
+    "t-rex",
+    "trex",
+    "fossil",
+    "prehistoric"
+   ]
+  },
+  {
+   "id": "space",
+   "band": "kids",
+   "keywords": [
+    "space",
+    "galaxy",
+    "astronaut",
+    "rocket",
+    "planet",
+    "cosmic",
+    "nasa",
+    "alien",
+    "star"
+   ]
+  },
+  {
+   "id": "unicorn",
+   "band": "kids",
+   "keywords": [
+    "unicorn",
+    "rainbow",
+    "pastel magic",
+    "pony"
+   ]
+  },
+  {
+   "id": "fairy",
+   "band": "kids",
+   "keywords": [
+    "fairy",
+    "enchanted",
+    "pixie",
+    "woodland",
+    "fairytale",
+    "fairy tale",
+    "storybook"
+   ]
+  },
+  {
+   "id": "mermaid",
+   "band": "kids",
+   "keywords": [
+    "mermaid",
+    "under the sea",
+    "ocean",
+    "sea",
+    "fish",
+    "aquarium",
+    "splash"
+   ]
+  },
+  {
+   "id": "pirate",
+   "band": "kids",
+   "keywords": [
+    "pirate",
+    "treasure",
+    "ahoy",
+    "buccaneer"
+   ]
+  },
+  {
+   "id": "superhero",
+   "band": "kids",
+   "keywords": [
+    "superhero",
+    "hero",
+    "comic",
+    "avenger",
+    "cape"
+   ]
+  },
+  {
+   "id": "spider",
+   "band": "kids",
+   "keywords": [
+    "spider",
+    "web-slinger",
+    "webslinger"
+   ]
+  },
+  {
+   "id": "princess",
+   "band": "kids",
+   "keywords": [
+    "princess",
+    "royal",
+    "castle",
+    "crown",
+    "queen for the day"
+   ]
+  },
+  {
+   "id": "winter-ice",
+   "band": "kids",
+   "keywords": [
+    "frozen",
+    "ice",
+    "snow",
+    "winter",
+    "elsa",
+    "arctic",
+    "snowflake"
+   ]
+  },
+  {
+   "id": "pink-dream",
+   "band": "kids",
+   "keywords": [
+    "barbie",
+    "dreamhouse",
+    "pink party",
+    "pink"
+   ]
+  },
+  {
+   "id": "pixel-block",
+   "band": "tween",
+   "keywords": [
+    "minecraft",
+    "creeper",
+    "block party",
+    "pixel",
+    "block"
+   ]
+  },
+  {
+   "id": "gaming",
+   "band": "tween",
+   "keywords": [
+    "gaming",
+    "gamer",
+    "video game",
+    "esports",
+    "fortnite",
+    "roblox",
+    "arcade",
+    "level up",
+    "controller"
+   ]
+  },
+  {
+   "id": "pocket-monsters",
+   "band": "kids",
+   "keywords": [
+    "pokemon",
+    "pikachu",
+    "poke"
+   ]
+  },
+  {
+   "id": "kart-plumber",
+   "band": "kids",
+   "keywords": [
+    "mario",
+    "kart",
+    "luigi",
+    "mushroom kingdom",
+    "power up"
+   ]
+  },
+  {
+   "id": "soccer",
+   "band": "any",
+   "keywords": [
+    "soccer",
+    "football",
+    "world cup",
+    "fifa",
+    "goal"
+   ]
+  },
+  {
+   "id": "racing",
+   "band": "kids",
+   "keywords": [
+    "racing",
+    "race",
+    "car",
+    "hot wheels",
+    "formula",
+    "monster truck",
+    "speed"
+   ]
+  },
+  {
+   "id": "neon-glow",
+   "band": "teen",
+   "keywords": [
+    "neon",
+    "glow",
+    "blacklight",
+    "glow in the dark",
+    "rave"
+   ]
+  },
+  {
+   "id": "music-fest",
+   "band": "teen",
+   "keywords": [
+    "music",
+    "concert",
+    "festival",
+    "karaoke",
+    "dj",
+    "dance",
+    "tiktok",
+    "pop star",
+    "eras",
+    "disco"
+   ]
+  },
+  {
+   "id": "retro-y2k",
+   "band": "teen",
+   "keywords": [
+    "retro",
+    "90s",
+    "80s",
+    "y2k",
+    "throwback",
+    "decade"
+   ]
+  },
+  {
+   "id": "black-gold",
+   "band": "teen",
+   "keywords": [
+    "black and gold",
+    "masquerade",
+    "sweet 16",
+    "sweet sixteen",
+    "elegant",
+    "gala"
+   ]
+  },
+  {
+   "id": "coquette",
+   "band": "teen",
+   "keywords": [
+    "bow",
+    "coquette",
+    "ribbon",
+    "pearl",
+    "ballet"
+   ]
+  },
+  {
+   "id": "spa-day",
+   "band": "tween",
+   "keywords": [
+    "spa",
+    "pamper",
+    "self care",
+    "glam",
+    "makeover"
+   ]
+  },
+  {
+   "id": "carnival",
+   "band": "any",
+   "keywords": [
+    "carnival",
+    "circus",
+    "funfair",
+    "fair",
+    "big top"
+   ]
+  },
+  {
+   "id": "safari",
+   "band": "kids",
+   "keywords": [
+    "safari",
+    "jungle",
+    "zoo",
+    "animal",
+    "wild one",
+    "wild"
+   ]
+  },
+  {
+   "id": "wizard",
+   "band": "tween",
+   "keywords": [
+    "wizard",
+    "magic school",
+    "potter",
+    "spell",
+    "potion"
+   ]
+  },
+  {
+   "id": "love",
+   "band": "any",
+   "keywords": [
+    "love",
+    "valentine",
+    "heart",
+    "sweetheart"
+   ]
+  },
+  {
+   "id": "garden-brunch",
+   "band": "adult",
+   "keywords": [
+    "brunch",
+    "garden party",
+    "garden brunch",
+    "tea party",
+    "afternoon tea",
+    "luncheon",
+    "baby shower",
+    "bridal shower",
+    "shower"
+   ]
+  },
+  {
+   "id": "cocktail-hour",
+   "band": "adult",
+   "keywords": [
+    "cocktail",
+    "cocktail hour",
+    "mixology",
+    "speakeasy",
+    "gatsby",
+    "jazz",
+    "whisky",
+    "wine",
+    "wine tasting",
+    "vineyard"
+   ]
+  },
+  {
+   "id": "backyard-bbq",
+   "band": "adult",
+   "keywords": [
+    "bbq",
+    "barbecue",
+    "cookout",
+    "backyard",
+    "grill",
+    "picnic",
+    "tailgate",
+    "braai",
+    "lawn"
+   ]
+  },
+  {
+   "id": "game-night",
+   "band": "adult",
+   "keywords": [
+    "game night",
+    "board game",
+    "boardgame",
+    "trivia",
+    "tabletop",
+    "poker",
+    "casino",
+    "escape room",
+    "mystery",
+    "murder mystery"
+   ]
+  },
+  {
+   "id": "milestone-gold",
+   "band": "adult",
+   "keywords": [
+    "30th",
+    "40th",
+    "50th",
+    "60th",
+    "70th",
+    "milestone",
+    "golden",
+    "anniversary",
+    "retirement",
+    "surprise"
+   ]
+  },
+  {
+   "id": "graduation",
+   "band": "adult",
+   "keywords": [
+    "graduation",
+    "grad",
+    "commencement",
+    "class of",
+    "diploma"
+   ]
+  },
+  {
+   "id": "fiesta",
+   "band": "any",
+   "keywords": [
+    "fiesta",
+    "quinceañera",
+    "quinceanera",
+    "quince",
+    "taco",
+    "mariachi",
+    "muertos",
+    "dia de los muertos",
+    "cinco de mayo",
+    "papel picado"
+   ]
+  },
+  {
+   "id": "mehndi",
+   "band": "any",
+   "keywords": [
+    "mehndi",
+    "sangeet",
+    "shaadi",
+    "diwali",
+    "holi",
+    "bollywood",
+    "indian",
+    "desi",
+    "henna",
+    "marigold"
+   ]
+  },
+  {
+   "id": "lunar",
+   "band": "any",
+   "keywords": [
+    "lunar new year",
+    "lunar",
+    "moon festival",
+    "mid-autumn",
+    "chinese",
+    "100-day",
+    "100 day",
+    "red egg",
+    "lion dance"
+   ]
+  },
+  {
+   "id": "mitzvah",
+   "band": "any",
+   "keywords": [
+    "mitzvah",
+    "bar mitzvah",
+    "bat mitzvah",
+    "kosher",
+    "hanukkah",
+    "shabbat",
+    "jewish"
+   ]
+  },
+  {
+   "id": "eid",
+   "band": "any",
+   "keywords": [
+    "eid",
+    "iftar",
+    "ramadan",
+    "halal",
+    "engagement",
+    "nikah",
+    "henna night"
+   ]
+  },
+  {
+   "id": "corporate",
+   "band": "adult",
+   "keywords": [
+    "launch",
+    "product reveal",
+    "summit",
+    "hackathon",
+    "meetup",
+    "expo",
+    "pitch",
+    "conference",
+    "offsite",
+    "team",
+    "company",
+    "series b",
+    "series a",
+    "demo day"
+   ]
+  }
+ ]
+}

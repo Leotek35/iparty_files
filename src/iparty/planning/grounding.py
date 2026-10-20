@@ -25,13 +25,14 @@ def ground_draft(draft: PlanDraft, catalog: Catalog, guests: int) -> PartyPlan:
                                        unit_price=0.0, subtotal=0.0))
             return
         price = item.price_for(quantity, guests)
-        line_items.append(LineItem(sku=item.sku, category=item.category,
+        line_items.append(LineItem(sku=item.sku, category=item.category, subcategory=item.subcategory,
                                    description=item.name, quantity=quantity,
                                    unit_price=item.unit_price, subtotal=price))
         if item.category == "food":
             menu.append(MenuItem(sku=item.sku, name=item.name,
                                  servings=item.servings_for(quantity, guests),
-                                 allergens=sorted(item.allergens), vegetarian=item.vegetarian))
+                                 allergens=sorted(item.allergens), vegetarian=item.vegetarian,
+                                 course=item.course, certifications=sorted(item.certifications)))
         elif item.category == "supplies":
             supplies_labels.append(item.name)
         elif item.category == "activities":
@@ -55,4 +56,7 @@ def ground_draft(draft: PlanDraft, catalog: Catalog, guests: int) -> PartyPlan:
         activities=activity_labels or [s.activity for s in draft.schedule],
         supplies=supplies_labels,
         notes=draft.notes,
+        concept_name=draft.concept_name,
+        story=draft.story,
+        moments=list(draft.moments),
     )

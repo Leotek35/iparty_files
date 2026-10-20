@@ -1,12 +1,18 @@
 # iParty 🎈
 
-**Verifier-gated birthday-party planning, built on the TTL reliability engine.**
+**Verifier-gated party planning for every celebration — toddlers to galas — built on the TTL reliability engine.**
 
-iParty turns a few details about the guest of honor into a complete party plan —
-and *guarantees* that plan fits your budget, headcount, dietary needs, and
-schedule before you ever see it. Plans aren't just generated; they're **checked
-against your real constraints** by a deterministic verifier, and only a passing
-plan is returned.
+iParty turns a few details about the guest of honor into a complete **Party
+Concept** — a signature moment, a table that matches it, a sweet moment, a
+look and a run of show — priced from a 600-item catalog that covers kids and
+tweens, teens and Sweet 16s, adult milestones, cultural celebrations and luxury
+events. And it *guarantees* that concept fits your budget, headcount, dietary
+needs (allergens, vegan, **halal, kosher, no pork**), ages and schedule before
+you ever see it. Concepts aren't just generated; they're **checked against your
+real constraints** by a deterministic verifier, and only a passing concept is
+returned. No model reachable? The built-in composer still produces a verified
+concept offline. Details: [docs/COMPOSER.md](docs/COMPOSER.md) ·
+[docs/CATALOG.md](docs/CATALOG.md).
 
 This is the production realization of the architecture validated in the
 [TTL research notebooks](#research-foundation): **TTL-for-planning = verifier-gated
@@ -29,6 +35,9 @@ A raw LLM call returns something *plausible*. iParty returns something *verified
 | One sample is unreliable | **Best-of-N** generates candidates, returns the first that *passes* |
 | **Prices are hallucinated** | The model **selects catalog SKUs**; the system prices them. Unreal prices are rejected. |
 | **Allergens are unsafe** | Checked against FDA big-9 allergen profiles, not string tags. A peanut dish fails a nut-allergy request. |
+| **"Halal" or "kosher" is hand-waved** | Certifications are catalog facts: every meat course must be certified (kosher: every course, plus on-site supervision), and `contains:pork` items never reach a no-pork table. Needs the catalog has no data for (keto, paleo) are refused honestly, never implied. |
+| **The plan is bland** (PB&J at a party) | The **Party Concept composer** reads the theme, occasion, age band, moods and cuisines, scores all 600 items for fit, and builds a concept around a signature moment — then the model is asked to improve on that verified starting point, not on a blank page. |
+| **A kids' act shows up at a gala, a mariachi at a Burns supper** | Segment, cuisine, palette and occasion rules in the composer; a 100-profile coherence gate (`tests/test_composer_creativity.py`) fails the build on any leak. |
 | **No valid plan exists** | The API returns `422` with the binding constraints and the **minimum feasible budget** — it never ships an invalid plan. |
 | **The plan goes stale once RSVPs arrive** | **Living Pass** re-verifies the saved plan against the *live* guest list on every response — headcount, place settings, budget, declared allergies — and attaches a verified fix. See [docs/LIVING_PASS.md](docs/LIVING_PASS.md). |
 
@@ -43,8 +52,9 @@ optional dietary needs — no account), the plan is re-grounded at the confirmed
 headcount and re-verified. Too many mouths for the cake → a verified fix with
 its cost. A guest declares a peanut allergy → the menu is re-checked and the
 unsafe item swapped. Fewer confirm than planned → the cheaper verified plan and
-the savings. A need the catalog can't verify (halal, kosher) → flagged by name,
-never silently "handled". Every proposal is one tap to accept — it is
+the savings — the same party, portioned smaller, never a different one. A
+guest asks for halal → certified food is swapped in. A need the catalog can't
+verify (keto, paleo) → flagged by name, never silently "handled". Every proposal is one tap to accept — it is
 recomputed and re-verified server-side, then becomes the saved plan. Every
 re-check is model-free and instant.
 
@@ -113,7 +123,14 @@ state, elapsed time, and a human-readable pattern log).
 
 Living Pass: `POST /api/v1/plans` (save + links) · `GET /api/v1/plans/{id}`
 (public pass) · `GET|POST /api/v1/plans/{id}/rsvp` (invitation / respond) ·
-`GET /api/v1/plans/{id}/status` and `/guests` (host token required).
+`GET /api/v1/plans/{id}/status` and `/guests` (host token required) ·
+`POST /api/v1/plans/{id}/apply` (accept a fix / right-size / re-budget).
+
+Vendors: `GET /api/v1/vendors/lookup?sku=ACT-DJ-PRO&near=Austin,TX` — real
+businesses near the host for one line item (Google Places / Yelp / Foursquare /
+OpenStreetMap when keys are set; marketplace deep links always). Leads, never
+prices: a price only enters a plan through the catalog, or through an approved
+vendor row in `data/vendor_catalog.jsonl` (`price_basis: quote`).
 
 ## Project layout
 
@@ -121,21 +138,28 @@ Living Pass: `POST /api/v1/plans` (save + links) · `GET /api/v1/plans/{id}`
 src/iparty/
   core/          config, exceptions, logging
   orchestration/ ttl_engine.py  — circuit breaker, watchdog, best-of-N orchestrator
-  pricing/       catalog (grounded prices + allergen profiles) — swap for a live vendor API
-  planning/      models, grounding, verifier (the gate), feasibility, prompts, planner
-  llm/           Anthropic + offline Mock backends
-  api/           FastAPI app + routes
-web/             single-page UI with the reliability ledger + guest RSVP page
-tests/           verifier, engine, planner, API, 100-profile MECE matrix, UX guards
+  pricing/       catalog.py (catalog v2 loader, dietary context, certifications)
+                 data/catalog_v2.json (600 items, generated) · vendors.py (live listings, vendor rows)
+  planning/      models, grounding, verifier (the gate), feasibility, composer (the Party Concept
+                 engine), prompts, planner, living (Living Pass)
+  llm/           Anthropic + offline Mock backends — both start from the composer's verified concept
+  api/           FastAPI app + routes (+ vendors/lookup)
+web/             single-page UI (concept-first pass, reliability ledger) + guest RSVP page
+scripts/         build_catalog.py + catalog_src/ (the catalog tables), concept_debug.py,
+                 ui_matrix.py (the browser harness), suite packaging
+tests/           verifier, engine, planner, API, 100-profile MECE matrix, Living Pass waves,
+                 composer creativity + 130-profile coherence gate, vendor fixtures, UX guards
 tests/ui/        opt-in browser matrix (IPARTY_UI=1): 100 profiles × desktop/phone, axe-core
-scripts/         ui_matrix.py (the browser harness), suite packaging
 ```
 
 ## Testing
 
 ```bash
-make test        # 487 tests: engine, verifier, API, 100-profile MECE matrix, static UX guards
+make test        # 677 tests: engine, verifier, API, 100-profile MECE matrix, Living Pass waves,
+                 # composer coherence gate (130 profiles), vendor fixtures, static UX guards
 make lint
+make catalog     # regenerate src/iparty/pricing/data/catalog_v2.json from scripts/catalog_src/
+make catalog-check   # CI: fail if the JSON is stale
 pip install -e ".[ui]" && playwright install chromium && npm i axe-core
 make ui-test     # browser smoke: 17 stratified profiles on desktop + phone (IPARTY_UI_FULL=1 for all 100)
 ```

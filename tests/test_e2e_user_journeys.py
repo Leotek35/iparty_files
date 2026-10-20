@@ -123,7 +123,7 @@ async def test_j2_infeasible_budget_refused_honestly_then_recovered():
 async def test_j3_unverifiable_dietary_need_fails_closed_with_zero_llm_calls():
     async with _client() as client:
         res = await client.post(
-            "/api/v1/plan", json=plan_body(dietary_restrictions="strictly halal")
+            "/api/v1/plan", json=plan_body(dietary_restrictions="strictly keto")
         )
         assert res.status_code == 409
         detail = res.json()["detail"]

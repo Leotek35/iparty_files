@@ -31,6 +31,10 @@ main{max-width:520px;margin:0 auto;padding:28px 16px 64px}
 .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--band-dim)}
 .title{font-size:34px;font-weight:800;line-height:1.05;margin-top:6px}
 .meta{margin-top:8px;color:var(--band-dim);font-size:14px}
+.story{margin-top:12px;font-size:15px;line-height:1.5;opacity:.92;max-width:60ch}
+.moments{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:6px}
+.moments li{font-size:14px;color:var(--band-text);opacity:.9}
+.moments .k{font-size:11px;font-weight:700;letter-spacing:.09em;color:var(--band-dim);margin-right:8px}
 .facts{padding:18px 24px 6px}
 .fact{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--hairline);font-size:15px}
 .fact:last-child{border-bottom:none}
@@ -97,8 +101,14 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--verify);ou
     const pass=el("article","pass");
     const band=el("div","band");
     band.append(el("div","eyebrow","YOU'RE INVITED"));
-    band.append(el("div","title display", inv.theme || "A party"));
+    band.append(el("div","title display", inv.concept_name || inv.theme || "A party"));
     band.append(el("div","meta", `${inv.honoree_name} turns ${inv.honoree_age}`));
+    if(inv.story) band.append(el("div","story", inv.story));
+    if(Array.isArray(inv.moments) && inv.moments.length){
+      const ul=el("ul","moments");
+      inv.moments.slice(0,4).forEach(m=>{ const li=el("li"); li.append(el("span","k",String(m.label||"").toUpperCase())); li.append(document.createTextNode(String(m.text||""))); ul.append(li); });
+      band.append(ul);
+    }
     pass.append(band);
     const facts=el("div","facts");
     const rows=[["When", fmtDate(inv.party_date) + (inv.starts?` · ${fmtTime(inv.starts)}–${fmtTime(inv.ends)}`:"")],

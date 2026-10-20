@@ -15,7 +15,7 @@ HTML = Path("web/index.html").read_text(encoding="utf-8")
 JS = re.search(r"<script>(.*)</script>", HTML, re.DOTALL).group(1)
 HEX = re.compile(r"^#[0-9A-Fa-f]{6}$")
 COLOR_KEYS = ["c1", "c2", "c3", "ac", "deep", "canvas"]
-BANDS = {"toddler", "kids", "tween", "teen", "any"}
+BANDS = {"toddler", "kids", "tween", "teen", "adult", "any"}
 
 
 def _lum(hex_color: str) -> float:

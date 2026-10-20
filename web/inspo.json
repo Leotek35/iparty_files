@@ -2,41 +2,536 @@
  "version": 1,
  "note": "Curated inspiration board content: research-informed decor/games/treats per theme + age-banded classic games. All text is our own; outbound discovery links are built client-side as Pinterest/TikTok searches.",
  "games_by_band": {
-  "toddler": ["Bubble chase — pop as many as you can", "Freeze dance to the party playlist", "Treasure dig in a sensory bin"],
-  "kids": ["Scavenger hunt with picture clues", "Musical chairs", "Pass the parcel"],
-  "tween": ["Scavenger hunt with riddle clues", "Balloon-pop relay race", "Trivia showdown"],
-  "teen": ["Mafia / Werewolf social deduction", "Lip-sync battle", "Escape-room challenge"]
+  "toddler": [
+   "Bubble chase — pop as many as you can",
+   "Freeze dance to the party playlist",
+   "Treasure dig in a sensory bin"
+  ],
+  "kids": [
+   "Scavenger hunt with picture clues",
+   "Musical chairs",
+   "Pass the parcel"
+  ],
+  "tween": [
+   "Scavenger hunt with riddle clues",
+   "Balloon-pop relay race",
+   "Trivia showdown"
+  ],
+  "teen": [
+   "Mafia / Werewolf social deduction",
+   "Lip-sync battle",
+   "Escape-room challenge"
+  ],
+  "adult": [
+   "Toast circle — one line each about the honoree",
+   "Playlist roulette: everyone adds three songs",
+   "Photo timeline wall — bring a picture from each decade"
+  ]
  },
  "themes": {
-  "bluey": {"decor": ["Sky-blue and cream balloon garland", "Cardboard Heeler-house photo corner", "Paw-print trail to the party zone"], "game": "Keepy Uppy — keep the balloon off the ground", "treats": ["Fairy bread squares", "Blue jelly cups"]},
-  "paw-pups": {"decor": ["Red, blue and yellow balloon arch", "Badge-shaped place cards", "Rescue-station table signs"], "game": "Rescue-mission obstacle course", "treats": ["Bone-shaped cookies", "Pup-fuel juice boxes"]},
-  "melon": {"decor": ["Watermelon balloon clusters", "Green streamer vines", "Fruit-slice paper fans"], "game": "Musical fruit freeze dance", "treats": ["Watermelon pops", "Rainbow fruit skewers"]},
-  "dino-dig": {"decor": ["Fern and palm-leaf jungle table", "DIY volcano centerpiece", "Dino-footprint floor stickers"], "game": "Fossil dig — excavate toy dinos from a sand tray", "treats": ["Dino-nugget platter", "Lava punch"]},
-  "space": {"decor": ["Black tablecloth with glow-star stickers", "Hanging planet lanterns", "LED string galaxy lights"], "game": "Moon-rock hunt in the dark with flashlights", "treats": ["Rocket fruit skewers", "Galaxy-glaze donuts"]},
-  "unicorn": {"decor": ["Pastel rainbow balloon arch", "Tulle table skirts", "Gold horn headbands for guests"], "game": "Pin the horn on the unicorn", "treats": ["Rainbow fruit wands", "Sprinkle cupcakes"]},
-  "fairy": {"decor": ["Moss and flower table runner", "Fairy-light mason jars", "Paper toadstool clusters"], "game": "Fairy treasure hunt with glitter clues", "treats": ["Honey oat bites", "Berry potion spritzers"]},
-  "mermaid": {"decor": ["Teal and pearl balloon garland", "Fishnet with paper shells", "Jellyfish paper lanterns"], "game": "Pass the pearl — hot-potato with a shell", "treats": ["Seashell cookies", "Ocean-blue jelly cups"]},
-  "pirate": {"decor": ["Treasure-map table runner", "Cardboard ship photo prop", "Jolly Roger bunting"], "game": "Treasure hunt — follow the map to the X", "treats": ["Gold-coin chocolates", "Cannonball melon bites"]},
-  "superhero": {"decor": ["Comic-burst POW cutouts", "City-skyline backdrop", "Cape and mask dress-up station"], "game": "Hero training course — crawl, leap, rescue", "treats": ["Power-bolt sandwiches", "Hero punch"]},
-  "spider": {"decor": ["Yarn web wall backdrop", "Red and blue balloon columns", "City silhouette cutouts"], "game": "Web-sling toss — streamers at targets", "treats": ["Web-topped cupcakes", "Spider fruit cups"]},
-  "princess": {"decor": ["Castle balloon backdrop", "Tiara place settings", "Tulle and gold table skirt"], "game": "Royal freeze dance — curtsy when the music stops", "treats": ["Crown cookies", "Pink royal-tea lemonade"]},
-  "winter-ice": {"decor": ["Snowflake garlands", "White balloon snow ceiling", "Silver tinsel icicles"], "game": "Snowball toss with white pom-poms", "treats": ["Snowflake pretzels", "Melted-ice blue punch"]},
-  "pink-dream": {"decor": ["All-pink balloon wall", "Dollhouse-style photo frame", "Mirror-ball accents"], "game": "Runway walk-off with a dress-up box", "treats": ["Pink wafer stacks", "Strawberry milkshake cups"]},
-  "pixel-block": {"decor": ["Green square-balloon creeper wall", "Pixel paper bunting", "Crafting-table snack labels"], "game": "Block hunt — find the hidden green cubes", "treats": ["Square crispy-treat blocks", "TNT juice boxes"]},
-  "gaming": {"decor": ["Neon LED strip accents", "Controller-shaped balloons", "Level-up banner over the cake"], "game": "Real-life dance-emote battle", "treats": ["Pixel-heart cookies", "Power-up popcorn cups"]},
-  "pocket-monsters": {"decor": ["Red and white ball balloons", "Yellow lightning bunting", "Gym-badge table cards"], "game": "Catch-them-all plush hunt", "treats": ["Ball-decorated cupcakes", "Electric lemonade"]},
-  "kart-plumber": {"decor": ["Checkered-flag bunting", "Green pipe cup centerpieces", "Question-block gift boxes"], "game": "Kart relay with pool-noodle karts", "treats": ["Strawberry mushroom pops", "Gold-coin crackers"]},
-  "soccer": {"decor": ["Green turf table runner", "Goal-net backdrop", "Black and white balloon clusters"], "game": "Penalty shootout on a mini goal", "treats": ["Soccer-ball cake pops", "Halftime orange slices"]},
-  "racing": {"decor": ["Checkered flags everywhere", "Tape race track on the floor", "Pit-stop snack station"], "game": "Toy-car derby down a ramp", "treats": ["Cookie tire stacks", "Fuel-up fruit juice"]},
-  "neon-glow": {"decor": ["Blacklights with fluorescent paper chains", "Glow-stick jar centerpieces", "Neon tape wall art"], "game": "Glow-in-the-dark ring toss", "treats": ["Neon-frosted donuts", "Glow lemonade under blacklight"]},
-  "music-fest": {"decor": ["Festival wristbands at the door", "Stage-style streamer backdrop", "Vinyl-record table mats"], "game": "Lip-sync battle with a prop box", "treats": ["Microphone cake pops", "Festival snack mix"]},
-  "retro-y2k": {"decor": ["CD garlands", "Lava-lamp centerpieces", "Smiley-face balloons"], "game": "Decades dance-off with trivia rounds", "treats": ["Popping-candy cupcakes", "Slushie floats"]},
-  "black-gold": {"decor": ["Black and gold balloon arch", "Sequin table runners", "Marquee-light number sign"], "game": "Prize-table bingo night", "treats": ["Gold-dusted truffles", "Sparkling apple cider"]},
-  "coquette": {"decor": ["Ribbon-bow chair sashes", "Pearl-strand table accents", "Vintage teacup settings"], "game": "Bow scavenger hunt and photo-corner styling", "treats": ["Heart-jam thumbprint cookies", "Strawberries and cream tea"]},
-  "spa-day": {"decor": ["Rolled-towel and robe stations", "LED candle and eucalyptus centerpieces", "Cucumber-water dispenser"], "game": "DIY face-mask and nail-art stations", "treats": ["Yogurt parfait cups", "Fruit-infused spa water"]},
-  "carnival": {"decor": ["Red and white striped backdrop", "Ticket-roll garlands", "Popcorn-box centerpieces"], "game": "Ring toss and duck-pond midway", "treats": ["Popcorn bar", "Cotton-candy cones"]},
-  "safari": {"decor": ["Animal-print balloon arch", "Palm-leaf table runner", "Binocular party favors"], "game": "Safari spotting hunt with checklists", "treats": ["Animal-cracker trail mix", "Jungle juice"]},
-  "wizard": {"decor": ["Floating LED candle effect", "House-color banners", "Potion-bottle centerpieces"], "game": "Potion-mixing station with fizzy experiments", "treats": ["Golden snack mix", "Butterscotch fizz"]},
-  "love": {"decor": ["Heart balloon garland", "Rose-petal table scatter", "Polaroid guest wall"], "game": "Heart hunt — find every hidden heart", "treats": ["Heart-shaped sandwiches", "Chocolate-dipped strawberries"]}
+  "bluey": {
+   "decor": [
+    "Sky-blue and cream balloon garland",
+    "Cardboard Heeler-house photo corner",
+    "Paw-print trail to the party zone"
+   ],
+   "game": "Keepy Uppy — keep the balloon off the ground",
+   "treats": [
+    "Fairy bread squares",
+    "Blue jelly cups"
+   ]
+  },
+  "paw-pups": {
+   "decor": [
+    "Red, blue and yellow balloon arch",
+    "Badge-shaped place cards",
+    "Rescue-station table signs"
+   ],
+   "game": "Rescue-mission obstacle course",
+   "treats": [
+    "Bone-shaped cookies",
+    "Pup-fuel juice boxes"
+   ]
+  },
+  "melon": {
+   "decor": [
+    "Watermelon balloon clusters",
+    "Green streamer vines",
+    "Fruit-slice paper fans"
+   ],
+   "game": "Musical fruit freeze dance",
+   "treats": [
+    "Watermelon pops",
+    "Rainbow fruit skewers"
+   ]
+  },
+  "dino-dig": {
+   "decor": [
+    "Fern and palm-leaf jungle table",
+    "DIY volcano centerpiece",
+    "Dino-footprint floor stickers"
+   ],
+   "game": "Fossil dig — excavate toy dinos from a sand tray",
+   "treats": [
+    "Dino-nugget platter",
+    "Lava punch"
+   ]
+  },
+  "space": {
+   "decor": [
+    "Black tablecloth with glow-star stickers",
+    "Hanging planet lanterns",
+    "LED string galaxy lights"
+   ],
+   "game": "Moon-rock hunt in the dark with flashlights",
+   "treats": [
+    "Rocket fruit skewers",
+    "Galaxy-glaze donuts"
+   ]
+  },
+  "unicorn": {
+   "decor": [
+    "Pastel rainbow balloon arch",
+    "Tulle table skirts",
+    "Gold horn headbands for guests"
+   ],
+   "game": "Pin the horn on the unicorn",
+   "treats": [
+    "Rainbow fruit wands",
+    "Sprinkle cupcakes"
+   ]
+  },
+  "fairy": {
+   "decor": [
+    "Moss and flower table runner",
+    "Fairy-light mason jars",
+    "Paper toadstool clusters"
+   ],
+   "game": "Fairy treasure hunt with glitter clues",
+   "treats": [
+    "Honey oat bites",
+    "Berry potion spritzers"
+   ]
+  },
+  "mermaid": {
+   "decor": [
+    "Teal and pearl balloon garland",
+    "Fishnet with paper shells",
+    "Jellyfish paper lanterns"
+   ],
+   "game": "Pass the pearl — hot-potato with a shell",
+   "treats": [
+    "Seashell cookies",
+    "Ocean-blue jelly cups"
+   ]
+  },
+  "pirate": {
+   "decor": [
+    "Treasure-map table runner",
+    "Cardboard ship photo prop",
+    "Jolly Roger bunting"
+   ],
+   "game": "Treasure hunt — follow the map to the X",
+   "treats": [
+    "Gold-coin chocolates",
+    "Cannonball melon bites"
+   ]
+  },
+  "superhero": {
+   "decor": [
+    "Comic-burst POW cutouts",
+    "City-skyline backdrop",
+    "Cape and mask dress-up station"
+   ],
+   "game": "Hero training course — crawl, leap, rescue",
+   "treats": [
+    "Power-bolt sandwiches",
+    "Hero punch"
+   ]
+  },
+  "spider": {
+   "decor": [
+    "Yarn web wall backdrop",
+    "Red and blue balloon columns",
+    "City silhouette cutouts"
+   ],
+   "game": "Web-sling toss — streamers at targets",
+   "treats": [
+    "Web-topped cupcakes",
+    "Spider fruit cups"
+   ]
+  },
+  "princess": {
+   "decor": [
+    "Castle balloon backdrop",
+    "Tiara place settings",
+    "Tulle and gold table skirt"
+   ],
+   "game": "Royal freeze dance — curtsy when the music stops",
+   "treats": [
+    "Crown cookies",
+    "Pink royal-tea lemonade"
+   ]
+  },
+  "winter-ice": {
+   "decor": [
+    "Snowflake garlands",
+    "White balloon snow ceiling",
+    "Silver tinsel icicles"
+   ],
+   "game": "Snowball toss with white pom-poms",
+   "treats": [
+    "Snowflake pretzels",
+    "Melted-ice blue punch"
+   ]
+  },
+  "pink-dream": {
+   "decor": [
+    "All-pink balloon wall",
+    "Dollhouse-style photo frame",
+    "Mirror-ball accents"
+   ],
+   "game": "Runway walk-off with a dress-up box",
+   "treats": [
+    "Pink wafer stacks",
+    "Strawberry milkshake cups"
+   ]
+  },
+  "pixel-block": {
+   "decor": [
+    "Green square-balloon creeper wall",
+    "Pixel paper bunting",
+    "Crafting-table snack labels"
+   ],
+   "game": "Block hunt — find the hidden green cubes",
+   "treats": [
+    "Square crispy-treat blocks",
+    "TNT juice boxes"
+   ]
+  },
+  "gaming": {
+   "decor": [
+    "Neon LED strip accents",
+    "Controller-shaped balloons",
+    "Level-up banner over the cake"
+   ],
+   "game": "Real-life dance-emote battle",
+   "treats": [
+    "Pixel-heart cookies",
+    "Power-up popcorn cups"
+   ]
+  },
+  "pocket-monsters": {
+   "decor": [
+    "Red and white ball balloons",
+    "Yellow lightning bunting",
+    "Gym-badge table cards"
+   ],
+   "game": "Catch-them-all plush hunt",
+   "treats": [
+    "Ball-decorated cupcakes",
+    "Electric lemonade"
+   ]
+  },
+  "kart-plumber": {
+   "decor": [
+    "Checkered-flag bunting",
+    "Green pipe cup centerpieces",
+    "Question-block gift boxes"
+   ],
+   "game": "Kart relay with pool-noodle karts",
+   "treats": [
+    "Strawberry mushroom pops",
+    "Gold-coin crackers"
+   ]
+  },
+  "soccer": {
+   "decor": [
+    "Green turf table runner",
+    "Goal-net backdrop",
+    "Black and white balloon clusters"
+   ],
+   "game": "Penalty shootout on a mini goal",
+   "treats": [
+    "Soccer-ball cake pops",
+    "Halftime orange slices"
+   ]
+  },
+  "racing": {
+   "decor": [
+    "Checkered flags everywhere",
+    "Tape race track on the floor",
+    "Pit-stop snack station"
+   ],
+   "game": "Toy-car derby down a ramp",
+   "treats": [
+    "Cookie tire stacks",
+    "Fuel-up fruit juice"
+   ]
+  },
+  "neon-glow": {
+   "decor": [
+    "Blacklights with fluorescent paper chains",
+    "Glow-stick jar centerpieces",
+    "Neon tape wall art"
+   ],
+   "game": "Glow-in-the-dark ring toss",
+   "treats": [
+    "Neon-frosted donuts",
+    "Glow lemonade under blacklight"
+   ]
+  },
+  "music-fest": {
+   "decor": [
+    "Festival wristbands at the door",
+    "Stage-style streamer backdrop",
+    "Vinyl-record table mats"
+   ],
+   "game": "Lip-sync battle with a prop box",
+   "treats": [
+    "Microphone cake pops",
+    "Festival snack mix"
+   ]
+  },
+  "retro-y2k": {
+   "decor": [
+    "CD garlands",
+    "Lava-lamp centerpieces",
+    "Smiley-face balloons"
+   ],
+   "game": "Decades dance-off with trivia rounds",
+   "treats": [
+    "Popping-candy cupcakes",
+    "Slushie floats"
+   ]
+  },
+  "black-gold": {
+   "decor": [
+    "Black and gold balloon arch",
+    "Sequin table runners",
+    "Marquee-light number sign"
+   ],
+   "game": "Prize-table bingo night",
+   "treats": [
+    "Gold-dusted truffles",
+    "Sparkling apple cider"
+   ]
+  },
+  "coquette": {
+   "decor": [
+    "Ribbon-bow chair sashes",
+    "Pearl-strand table accents",
+    "Vintage teacup settings"
+   ],
+   "game": "Bow scavenger hunt and photo-corner styling",
+   "treats": [
+    "Heart-jam thumbprint cookies",
+    "Strawberries and cream tea"
+   ]
+  },
+  "spa-day": {
+   "decor": [
+    "Rolled-towel and robe stations",
+    "LED candle and eucalyptus centerpieces",
+    "Cucumber-water dispenser"
+   ],
+   "game": "DIY face-mask and nail-art stations",
+   "treats": [
+    "Yogurt parfait cups",
+    "Fruit-infused spa water"
+   ]
+  },
+  "carnival": {
+   "decor": [
+    "Red and white striped backdrop",
+    "Ticket-roll garlands",
+    "Popcorn-box centerpieces"
+   ],
+   "game": "Ring toss and duck-pond midway",
+   "treats": [
+    "Popcorn bar",
+    "Cotton-candy cones"
+   ]
+  },
+  "safari": {
+   "decor": [
+    "Animal-print balloon arch",
+    "Palm-leaf table runner",
+    "Binocular party favors"
+   ],
+   "game": "Safari spotting hunt with checklists",
+   "treats": [
+    "Animal-cracker trail mix",
+    "Jungle juice"
+   ]
+  },
+  "wizard": {
+   "decor": [
+    "Floating LED candle effect",
+    "House-color banners",
+    "Potion-bottle centerpieces"
+   ],
+   "game": "Potion-mixing station with fizzy experiments",
+   "treats": [
+    "Golden snack mix",
+    "Butterscotch fizz"
+   ]
+  },
+  "love": {
+   "decor": [
+    "Heart balloon garland",
+    "Rose-petal table scatter",
+    "Polaroid guest wall"
+   ],
+   "game": "Heart hunt — find every hidden heart",
+   "treats": [
+    "Heart-shaped sandwiches",
+    "Chocolate-dipped strawberries"
+   ]
+  },
+  "garden-brunch": {
+   "decor": [
+    "Linen runner, bud vases, one bloom each",
+    "Citrus and herb centerpieces",
+    "Hand-lettered menu cards"
+   ],
+   "game": "Mimosa-free mocktail bar with a vote for the best",
+   "treats": [
+    "Lemon-poppyseed loaf",
+    "Fruit skewers with mint"
+   ]
+  },
+  "cocktail-hour": {
+   "decor": [
+    "Low amber lighting and brass trays",
+    "A chalkboard menu of two signature drinks",
+    "Velvet runner, taper candles"
+   ],
+   "game": "Blind tasting: guess the base spirit",
+   "treats": [
+    "Olive and cheese boards",
+    "Dark chocolate bark"
+   ]
+  },
+  "backyard-bbq": {
+   "decor": [
+    "Gingham runners and mason-jar lanterns",
+    "Bistro lights over the yard",
+    "Chalkboard drink station"
+   ],
+   "game": "Cornhole bracket with a trophy",
+   "treats": [
+    "Grilled corn with lime butter",
+    "S'mores at dusk"
+   ]
+  },
+  "game-night": {
+   "decor": [
+    "Card-suit garlands",
+    "Scoreboard on a chalkboard",
+    "Dimmer lamps over the tables"
+   ],
+   "game": "Tournament bracket — trivia, then the finale board game",
+   "treats": [
+    "Snack boards within arm's reach",
+    "Popcorn in paper cones"
+   ]
+  },
+  "milestone-gold": {
+   "decor": [
+    "Gold number balloons by the entrance",
+    "A photo timeline across the decades",
+    "Ivory florals, gold chargers"
+   ],
+   "game": "Then-and-now photo quiz",
+   "treats": [
+    "Mini cheesecakes",
+    "Champagne-flavored macarons"
+   ]
+  },
+  "graduation": {
+   "decor": [
+    "Cap garlands and the class year in lights",
+    "A photo banner from kindergarten to now",
+    "School-color balloon arch"
+   ],
+   "game": "Advice cards for the next chapter",
+   "treats": [
+    "Diploma-rolled crepes",
+    "Cupcakes in school colors"
+   ]
+  },
+  "fiesta": {
+   "decor": [
+    "Papel picado strung across the room",
+    "Marigold and serape table runners",
+    "Clay-pot centerpieces"
+   ],
+   "game": "Piñata, then a salsa lesson",
+   "treats": [
+    "Churros with chocolate",
+    "Tres leches cups"
+   ]
+  },
+  "mehndi": {
+   "decor": [
+    "Marigold garlands and brass diyas",
+    "Floor cushions and low tables",
+    "Mirror-work table runners"
+   ],
+   "game": "Dhol-led dance-off with a sangeet playlist",
+   "treats": [
+    "Gulab jamun",
+    "Mango lassi shooters"
+   ]
+  },
+  "lunar": {
+   "decor": [
+    "Red and gold lanterns",
+    "Paper-cut window art",
+    "Mandarin-orange centerpieces"
+   ],
+   "game": "Chopstick challenge relay",
+   "treats": [
+    "Mooncakes or egg tarts",
+    "Sesame balls"
+   ]
+  },
+  "mitzvah": {
+   "decor": [
+    "Blue and silver uplighting",
+    "A candle-lighting board",
+    "Personalized kippot at the door"
+   ],
+   "game": "Hora, then the motivators take the floor",
+   "treats": [
+    "Babka and rugelach",
+    "Sufganiyot"
+   ]
+  },
+  "eid": {
+   "decor": [
+    "Crescent-moon banners",
+    "Gold lanterns and green runners",
+    "A dates-and-tea welcome table"
+   ],
+   "game": "Henna corner and a nasheed playlist",
+   "treats": [
+    "Baklava",
+    "Dates stuffed with pistachio"
+   ]
+  },
+  "corporate": {
+   "decor": [
+    "Branded step-and-repeat",
+    "Lounge seating and charging tables",
+    "A demo stage with uplighting"
+   ],
+   "game": "Lightning talks with audience voting",
+   "treats": [
+    "Canapé passes",
+    "Espresso cart"
+   ]
+  }
  }
 }

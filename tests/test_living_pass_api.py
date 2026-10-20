@@ -247,8 +247,10 @@ def test_status_is_cached_per_guest_list_and_invalidates_on_change(client):
 # ---------------------------------------------------------------- honesty of dietary parsing
 def test_compound_needs_are_judged_piece_by_piece():
     # A need we understand must never let one we don't hide behind it.
-    assert unverifiable_dietary("gluten free; halal") == "halal"
-    assert unverifiable_dietary("nut allergy, kosher") == "kosher"
+    assert unverifiable_dietary("gluten free; keto") == "keto"
+    assert unverifiable_dietary("nut allergy, paleo") == "paleo"
+    assert unverifiable_dietary("gluten free; halal") is None   # halal is verified from catalog certifications now
+    assert unverifiable_dietary("nut allergy, kosher") is None
     assert unverifiable_dietary("vegetarian and dairy free") is None
     assert unverifiable_dietary("") is None
 
