@@ -11,6 +11,6 @@ One entry per design or product decision an agent could not make alone: the opti
 - **Claude path: Verbalized Sampling + structured backprompting.** k = 5, τ = 0.10; all violations sent at once; ≤ 3 rounds; keep the best-R draft; never re-prompt a passing plan. — C0-01, C0-02
 - **Cheap tier + prompt caching.** Haiku 5.5 default with one cached system block ≥ 512 tokens; Sonnet 5.5 opt-in for hard briefs. 20k calls ≈ $9. — C0-04
 - **Places terms.** Cache only place_id (indefinitely) and lat/lng (≤ 30 days); refetch details on render; attribution shown. — C0-05
-- **YC timing.** Winter 2027 on-time deadline is Sun 2 Nov, 8 pm PT (not end of November). Decision due Thu 23 Oct: apply on time with pre-launch proof, or Early Decision for Spring 2027. — E0-01 (open)
+- **YC timing — decided.** Apply on time for Winter 2027: deadline **Monday 2 Nov 2026, 8 pm PT**; submit Sunday 1 Nov evening; freeze Thu 29 Oct 22:00; a Halloween proof party on Sat 31 Oct run by the founders as dashers; plan in docs/sprints/ROAD_TO_YC.md and S1.md. — Leo, E0-01 → E1-01…E1-04
 - **Payments structure.** iParty is the disclosed seller of the bundle; vendors and dashers paid via Stripe Connect separate charges and transfers; Stripe Managed Payments excluded (digital-only); alcohol excluded at launch. — D0-02
 - **Insurance programme.** GL $1M/$2M + contingent liability + occupational accident via broker quotes; ask about abuse & molestation and host liquor. Bind decision in S1. — D0-01

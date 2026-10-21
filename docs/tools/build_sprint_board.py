@@ -9,12 +9,21 @@ sys.path.insert(0, str(_P(__file__).resolve().parents[1]))
 sys.path.insert(0, str(_P(__file__).resolve().parents[1] / "sprints"))
 import architecture_model as A  # docs/architecture_model.py
 import s0_model as M  # docs/sprints/s0_model.py
+import s1_model as S1  # docs/sprints/s1_model.py
 
 HERE = Path(__file__).resolve().parents[1]  # docs/
 OUT_HTML = HERE / "tools" / "out" / "s0-kanban.html"
 OUT_MD = HERE / "sprints" / "S0.md"
+OUT_MD1 = HERE / "sprints" / "S1.md"
+OUT_ROAD = HERE / "sprints" / "ROAD_TO_YC.md"
 OUT_SEED = HERE / "tools" / "out" / "s0_seed.json"
+OUT_SEED1 = HERE / "tools" / "out" / "s1_seed.json"
 OUT_HTML.parent.mkdir(parents=True, exist_ok=True)
+for _c in M.CARDS:
+    _c.setdefault("sprint", "S0")
+ALL_CARDS = M.CARDS + S1.CARDS
+ALL_DAYS = M.DAYS + S1.DAYS
+ALL_QA = [dict(q, sprint="S0") for q in M.QA_GATE] + [dict(q, sprint="S1") for q in S1.QA_GATE]
 
 def esc(s):
     return html.escape(str(s), quote=True)
@@ -57,12 +66,12 @@ CARD_NODES = {}
 for n in A.NODES:
     for c in n.get("cards", []):
         CARD_NODES.setdefault(c, []).append(n["id"])
-MODEL_JSON = json.dumps(dict(sprint=M.SPRINT, lanes=M.LANES, days=M.DAYS, cards=M.CARDS, qa=M.QA_GATE, cardNodes=CARD_NODES, reference=A.REFERENCE_URL, today=M.SPRINT["today"]), ensure_ascii=False)
+MODEL_JSON = json.dumps(dict(sprint=S1.SPRINT, sprints=[M.SPRINT["id"], S1.SPRINT["id"]], deadline=S1.DEADLINE, lanes=M.LANES, days=ALL_DAYS, cards=ALL_CARDS, qa=ALL_QA, yc=S1.YC_CHECKLIST, cardNodes=CARD_NODES, reference=A.REFERENCE_URL, today=M.SPRINT["today"]), ensure_ascii=False)
 
 def card_html(c):
     lane_name, owner_desc, dom = M.LANES[c["lane"]]
     return (f'<article class="card {dom} prio-{c["prio"]}" draggable="true" data-id="{c["id"]}" data-status="{c["status"]}" tabindex="0" role="button" aria-label="{esc(c["id"])} {esc(c["title"])}">'
-            f'<header><span class="cid">{c["id"]}</span><span class="prio">{c["prio"]}</span></header>'
+            f'<header><span class="cid">{c["id"]} · {c.get("sprint", "S0")}</span><span class="prio">{c["prio"]}</span></header>'
             f'<h4>{esc(c["title"])}</h4>'
             f'<p class="meta"><span>{esc(c["owner"])}</span><span>{c["est"]} h</span><span>{esc(c["day"])}</span></p>'
             f'<p class="deps">{("after " + ", ".join(c["deps"])) if c["deps"] else "no dependencies"}</p>'
@@ -71,15 +80,15 @@ def card_html(c):
 def columns_html():
     out = []
     for cid, cname in M.SPRINT["columns"]:
-        cards = [c for c in M.CARDS if c["status"] == cid]
-        wip = M.SPRINT["wip"].get(cid)
+        cards = [c for c in ALL_CARDS if c["status"] == cid]
+        wip = S1.SPRINT["wip"].get(cid)
         out.append(f'<section class="col" data-col="{cid}"><header><h3>{esc(cname)}</h3><span class="count" data-count="{cid}">{len(cards)}</span>{(f"<span class=wip>WIP {wip}</span>") if wip else ""}</header>'
                    f'<div class="cards" data-col="{cid}">' + "".join(card_html(c) for c in cards) + '</div></section>')
     return "".join(out)
 
 def tests_html():
     rows = []
-    for c in M.CARDS:
+    for c in ALL_CARDS:
         rows.append(f'<tr id="tests-{c["id"]}"><td><a href="#{c["id"]}">{c["id"]}</a><br><strong>{esc(c["title"])}</strong><br><span class="dim">{esc(c["owner"])} · {esc(c["day"])}</span></td>'
                     f'<td><ol>' + "".join(f'<li>{esc(t)}</li>' for t in c["tests"]) + '</ol></td>'
                     '<td><ul>' + "".join(f'<li>{esc(q)}</li>' for q in c["qa"]) + '</ul></td>'
@@ -87,8 +96,21 @@ def tests_html():
     return '<div class="table-wrap"><table class="tests"><thead><tr><th>Card</th><th>Acceptance tests (written before the code)</th><th>QA (what the reviewer verifies)</th><th>Definition of done</th></tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>'
 
 def qa_html():
-    return '<ul class="qa" id="qa-list">' + "".join(
-        f'<li data-qid="{q["id"]}"><label><input type="checkbox" id="qa-{q["id"]}" data-qid="{q["id"]}"> <span class="qid">{q["id"]}</span> {esc(q["text"])} <span class="dim">— {esc(q["owner"])}</span></label></li>' for q in M.QA_GATE) + '</ul>'
+    out = []
+    for sid, name, items in (("S0", "Sprint 0 exit gate · Sun 25 Oct", M.QA_GATE), ("S1", "Sprint 1 exit gate · Sun 1 Nov", S1.QA_GATE)):
+        out.append(f'<h3>{esc(name)}</h3><ul class="qa">' + "".join(
+            f'<li data-qid="{q["id"]}"><label><input type="checkbox" id="qa-{q["id"]}" data-qid="{q["id"]}"> <span class="qid">{q["id"]}</span> {esc(q["text"])} <span class="dim">— {esc(q["owner"])}</span></label></li>' for q in items) + '</ul>')
+    return "".join(out)
+
+def yc_html():
+    d = S1.DEADLINE
+    out = [f'<p class="gate"><strong>{esc(d["label"])}: {esc(d["when"])}.</strong> Submit {esc(d["submit"])}. Freeze: {esc(d["freeze"])}. <a href="{esc(d["source"])}" rel="noopener">ycombinator.com/apply</a></p>',
+           '<h3>Evidence checklist</h3><p class="notice">What the form asks, the evidence we bring, and where it comes from. Shared ticks.</p><ul class="qa yc">' + "".join(
+               f'<li data-yid="{y["id"]}"><label><input type="checkbox" id="yc-{y["id"]}" data-yid="{y["id"]}"> <span class="qid">{y["id"]}</span> <span class="body"><strong>{esc(y["ask"])}</strong><br>{esc(y["evidence"])} <span class="dim">— {esc(y["source"])} · {esc(y["owner"])}</span></span></label></li>' for y in S1.YC_CHECKLIST) + '</ul>',
+           '<h3>Day by day</h3><div class="table-wrap"><table class="daily"><thead><tr><th>Day</th><th>Sprint</th><th>Critical path</th></tr></thead><tbody>' + "".join(
+               f'<tr><td><strong>{esc(day)}</strong></td><td>{esc(sp)}</td><td>{esc(txt)}</td></tr>' for day, sp, txt in S1.DAILY) + '</tbody></table></div>',
+           '<h3>What is cut until after 2 November</h3><ul>' + "".join(f'<li>{esc(c)}</li>' for c in S1.CUTS) + '</ul>']
+    return "".join(out)
 
 def research_html():
     out = []
@@ -188,7 +210,7 @@ td ol, td ul { margin: 0; padding-left: 1.1em; } .dim { color: var(--fg-2); font
 table.tests td:nth-child(2) { min-width: 26em; }
 .qa { list-style: none; padding: 0; max-width: 90ch; } .qa li { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 8px; background: var(--panel); }
 .qa label { display: flex; gap: 10px; align-items: start; cursor: pointer; } .qa input { margin-top: 5px; } .qid { font-family: var(--mono); font-size: 11px; color: var(--fg-2); }
-.qa li.checked { opacity: .65; text-decoration: line-through; }
+.qa li.checked { opacity: .65; text-decoration: line-through; } .qa.yc li { max-width: 100ch; } .qa .body { flex: 1; min-width: 0; } .qa .qid { flex: 0 0 auto; margin-top: 4px; } table.daily td:nth-child(3) { min-width: 30em; }
 dl.research { max-width: 90ch; } dl.research dt { font-family: var(--display); font-weight: 700; margin-top: 12px; } dl.research dd { margin: 2px 0 0; }
 .gate { border-left: 3px solid var(--accent-2); padding: 6px 0 6px 16px; font-family: var(--display); font-size: 15px; max-width: 90ch; }
 .view h2 { font-family: var(--display); font-weight: 700; font-size: 24px; margin: 8px 0 8px; }
@@ -206,7 +228,8 @@ JS = r"""
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   let db = null, uid = null, canWrite = false, selected = null, activity = [];
   const live = document.getElementById('live'), note = document.getElementById('toolbar-note');
-  const filters = { lanes: new Set(Object.keys(MODEL.lanes)), owner: '', day: '', p0: false };
+  const filters = { lanes: new Set(Object.keys(MODEL.lanes)), sprints: new Set(MODEL.sprints), owner: '', day: '', p0: false };
+  const DEADLINE = new Date('2026-11-03T04:00:00Z'); // Mon 2 Nov 2026, 8 pm PT
 
   // ---------- tabs
   const tabs = [...document.querySelectorAll('.tab')];
@@ -218,7 +241,7 @@ JS = r"""
   tabs.forEach(t => t.addEventListener('click', () => { showTab(t.dataset.tab); history.replaceState(null, '', '#' + t.dataset.tab); }));
 
   // ---------- helpers
-  const visible = c => filters.lanes.has(c.lane) && (!filters.owner || c.owner === filters.owner) && (!filters.day || c.day === filters.day) && (!filters.p0 || c.prio === 'P0');
+  const visible = c => filters.lanes.has(c.lane) && filters.sprints.has(c.sprint || 'S0') && (!filters.owner || c.owner === filters.owner) && (!filters.day || c.day === filters.day) && (!filters.p0 || c.prio === 'P0');
   const waitingOn = c => (c.deps || []).filter(d => cards[d] && cards[d].status !== 'done');
   function cardEl(c, compact) {
     const lane = MODEL.lanes[c.lane] || ['Ad hoc', '', 'dom-users'];
@@ -276,6 +299,10 @@ JS = r"""
     const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (on) filters.lanes.add(b.dataset.lane); else filters.lanes.delete(b.dataset.lane); renderBoard();
   }));
+  document.querySelectorAll('.fchip[data-sprint]').forEach(b => b.addEventListener('click', () => {
+    const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (on) filters.sprints.add(b.dataset.sprint); else filters.sprints.delete(b.dataset.sprint); renderBoard();
+  }));
   document.getElementById('f-owner').addEventListener('change', ev => { filters.owner = ev.target.value; renderBoard(); });
   document.getElementById('f-day').addEventListener('change', ev => { filters.day = ev.target.value; renderBoard(); });
   document.getElementById('f-p0').addEventListener('change', ev => { filters.p0 = ev.target.checked; renderBoard(); });
@@ -288,7 +315,7 @@ JS = r"""
   }
   function briefFor(c) {
     const lane = MODEL.lanes[c.lane] || ['Ad hoc', 'Leo', ''];
-    return `Lane: ${c.lane} · ${lane[0]}        Sprint: ${MODEL.sprint.id}        Card: ${c.id}        Branch: wt/${c.id.toLowerCase()}
+    return `Lane: ${c.lane} · ${lane[0]}        Sprint: ${c.sprint || 'S0'}        Card: ${c.id}        Branch: wt/${c.id.toLowerCase()}
 Goal: ${c.title}
 Owner: ${c.owner} · estimate ${c.est} h · planned ${c.day} · priority ${c.prio}
 Context: read docs/ARCHITECTURE.md (systems: ${(MODEL.cardNodes[c.id] || []).join(', ') || 'see register'}), docs/sprints/S0.md, docs/DECISIONS.md first.
@@ -307,7 +334,7 @@ Done means: PR open, gate green, a 5-line summary of what changed and what you c
     const all = Object.values(cards);
     const by = col => all.filter(c => c.status === col).map(c => `- ${c.id} ${c.title} (${c.owner})${c.blocked ? ' — BLOCKED: ' + c.blocked : ''}`).join('\n') || '- none';
     const hDone = all.filter(c => c.status === 'done').reduce((a, c) => a + (c.est || 0), 0);
-    return `# ${MODEL.sprint.name} — standup ${new Date().toISOString().slice(0, 10)}\n\n${hDone} of ${TOTAL_EST} estimated hours done.\n\n## Done\n${by('done')}\n\n## In review\n${by('review')}\n\n## In progress\n${by('doing')}\n\n## Ready\n${by('ready')}\n\n## Blocked\n${all.filter(c => c.blocked).map(c => `- ${c.id}: ${c.blocked}`).join('\n') || '- none'}\n`;
+    return `# Road to YC — standup ${new Date().toISOString().slice(0, 10)}\n\n${hDone} of ${TOTAL_EST} estimated hours done.\n\n## Done\n${by('done')}\n\n## In review\n${by('review')}\n\n## In progress\n${by('doing')}\n\n## Ready\n${by('ready')}\n\n## Blocked\n${all.filter(c => c.blocked).map(c => `- ${c.id}: ${c.blocked}`).join('\n') || '- none'}\n`;
   }
   document.getElementById('export').addEventListener('click', () => copyText(standup(), 'Standup summary copied.'));
 
@@ -392,12 +419,19 @@ Done means: PR open, gate green, a 5-line summary of what changed and what you c
   }
 
   // ---------- QA checklist
-  document.querySelectorAll('#qa-list input').forEach(inp => inp.addEventListener('change', async () => {
+  document.querySelectorAll('.qa:not(.yc) input').forEach(inp => inp.addEventListener('change', async () => {
     const qid = inp.dataset.qid; inp.closest('li').classList.toggle('checked', inp.checked);
     if (!db || !canWrite) return;
     try { await db.doc('qa/' + qid).update({ checked: inp.checked, checkedAt: new Date().toISOString(), checkedBy: uid || 'unknown' }); }
     catch (e) { live.innerHTML = `<b>Save failed</b> (${esc(e && e.code)}).`; }
   }));
+  document.querySelectorAll('.qa.yc input').forEach(inp => inp.addEventListener('change', async () => {
+    const yid = inp.dataset.yid; inp.closest('li').classList.toggle('checked', inp.checked);
+    if (!db || !canWrite) return;
+    try { await db.doc('yc/' + yid).update({ checked: inp.checked, checkedAt: new Date().toISOString(), checkedBy: uid || 'unknown' }); }
+    catch (e) { live.innerHTML = `<b>Save failed</b> (${esc(e && e.code)}).`; }
+  }));
+  function applyYc(id, data) { const inp = document.getElementById('yc-' + id); if (!inp) return; inp.checked = !!data.checked; inp.closest('li').classList.toggle('checked', !!data.checked); }
   function applyQa(id, data) { const inp = document.getElementById('qa-' + id); if (!inp) return; inp.checked = !!data.checked; const li = inp.closest('li'); li.classList.toggle('checked', !!data.checked);
     let when = li.querySelector('.when'); if (!when) { when = document.createElement('span'); when.className = 'dim when'; li.querySelector('label').appendChild(when); }
     when.textContent = data.checked && data.checkedAt ? ` · ticked ${String(data.checkedAt).slice(0, 16).replace('T', ' ')}` : ''; }
@@ -405,13 +439,14 @@ Done means: PR open, gate green, a 5-line summary of what changed and what you c
   // ---------- hash routing
   function fromHash() {
     const h = (location.hash || '').slice(1);
-    if (['board', 'days', 'tests', 'qa', 'research'].includes(h)) { showTab(h); return; }
+    if (['board', 'days', 'yc', 'tests', 'qa', 'research'].includes(h)) { showTab(h); return; }
     if (cards[h]) { showTab('board'); select(h); }
   }
   window.addEventListener('hashchange', fromHash);
 
   // ---------- boot: render from the embedded model, then light up the store
   renderBoard(); renderActivity(); fromHash();
+  document.getElementById('stat-days').textContent = Math.max(0, Math.floor((DEADLINE - Date.now()) / 86400000));
   (async () => {
     db = await claude.use('db'); const user = await claude.use('user');
     if (!db) { live.innerHTML = 'Live status unavailable in this view — showing the plan as written.'; return; }
@@ -427,16 +462,18 @@ Done means: PR open, gate green, a 5-line summary of what changed and what you c
       renderBoard(); if (selected) renderDrawer();
     }, e => { live.innerHTML = `Live status unavailable (${esc(e && e.code)}) — showing the plan as written.`; });
     db.collection('qa').onSnapshot(snap => { snap.docs.forEach(d => applyQa(d.id, d.data())); }, () => {});
+    db.collection('yc').onSnapshot(snap => { snap.docs.forEach(d => applyYc(d.id, d.data())); }, () => {});
     db.doc('meta/activity').onSnapshot(snap => { if (snap.exists) { activity = (snap.data().entries || []).slice(-200); renderActivity(); } }, () => {});
   })();
 })();
 """
 
-days_left = 5  # Wed 21 – Sun 25
+days_left = 12  # Wed 21 Oct → Mon 2 Nov (recomputed live on the page)
+sprint_filters = "".join(f'<button type="button" class="fchip" data-sprint="{sid}" aria-pressed="true">{sid}</button>' for sid in ("S0", "S1"))
 lane_filters = "".join(f'<button type="button" class="fchip" data-lane="{k}" aria-pressed="true"><i class="sw {v[2]}"></i>{k} · {esc(v[0])}</button>' for k, v in M.LANES.items())
-owner_options = "".join(f'<option value="{esc(o)}">{esc(o)}</option>' for o in sorted(set(c["owner"] for c in M.CARDS)))
-day_options = "".join(f'<option value="{esc(d)}">{esc(d)}</option>' for d in M.DAYS)
-PAGE = f"""<title>Sprint 0 Board</title>
+owner_options = "".join(f'<option value="{esc(o)}">{esc(o)}</option>' for o in sorted(set(c["owner"] for c in ALL_CARDS)))
+day_options = "".join(f'<option value="{esc(d)}">{esc(d)}</option>' for d in ALL_DAYS)
+PAGE = f"""<title>Road to YC Board</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=IBM+Plex+Mono:wght@400;500;700&display=swap">
@@ -444,26 +481,28 @@ PAGE = f"""<title>Sprint 0 Board</title>
 <div class="wrap">
   <header class="masthead">
     <div>
-      <p class="eyebrow">iParty · Sprint 0 · Tue 20 – Sun 25 Oct 2026 · instrument and spike</p>
-      <h1>Sprint 0 Board: <em>instrument and spike</em></h1>
-      <p class="goal">{esc(M.SPRINT["goal"])}</p>
+      <p class="eyebrow">iParty · Road to YC · Wed 21 Oct – Mon 2 Nov 2026 · S0 instrument and spike → S1 road to YC</p>
+      <h1>Road to YC Board: <em>deadline Mon 2 Nov, 8 pm PT</em></h1>
+      <p class="goal">{esc(S1.SPRINT["goal"])}</p>
       <p class="live" id="live">Connecting to the shared board…</p>
     </div>
-    <div class="stats"><span><b>{len(M.CARDS)}</b>cards</span><span><b id="stat-doing">0</b>in progress / review</span><span><b id="stat-done">0</b>done</span><span><b>{days_left}</b>days left</span><span><b>{sum(c["est"] for c in M.CARDS)}</b>estimated hours</span></div>
+    <div class="stats"><span><b>{len(ALL_CARDS)}</b>cards</span><span><b id="stat-doing">0</b>in progress / review</span><span><b id="stat-done">0</b>done</span><span><b id="stat-days">{days_left}</b>days to deadline</span><span><b>{sum(c["est"] for c in ALL_CARDS)}</b>estimated hours</span></div>
   </header>
 
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" data-tab="board" aria-selected="true">Board</button>
     <button class="tab" role="tab" data-tab="days" aria-selected="false">By day</button>
+    <button class="tab" role="tab" data-tab="yc" aria-selected="false">YC application</button>
     <button class="tab" role="tab" data-tab="tests" aria-selected="false">Test plan</button>
     <button class="tab" role="tab" data-tab="qa" aria-selected="false">QA · exit gate</button>
     <button class="tab" role="tab" data-tab="research" aria-selected="false">Research · protocol</button>
   </div>
 
   <section id="view-board" class="view active">
-    <p class="gate"><strong>Gate.</strong> {esc(M.SPRINT["gate"])}</p>
-    <div class="progress" aria-label="Progress"><div class="bar"><span id="bar-done"></span><span id="bar-doing"></span></div><p class="notice" id="progress-text">0 of {sum(c["est"] for c in M.CARDS)} estimated hours done</p></div>
+    <p class="gate"><strong>Gate.</strong> {esc(S1.SPRINT["gate"])}</p>
+    <div class="progress" aria-label="Progress"><div class="bar"><span id="bar-done"></span><span id="bar-doing"></span></div><p class="notice" id="progress-text">0 of {sum(c["est"] for c in ALL_CARDS)} estimated hours done</p></div>
     <div class="toolbar">
+      <span class="k">Sprint</span>{sprint_filters}
       <span class="k">Lane</span>{lane_filters}
       <span class="k">Owner</span><select id="f-owner"><option value="">all</option>{owner_options}</select>
       <span class="k">Day</span><select id="f-day"><option value="">all</option>{day_options}</select>
@@ -489,9 +528,14 @@ PAGE = f"""<title>Sprint 0 Board</title>
     {tests_html()}
   </section>
 
+  <section id="view-yc" class="view">
+    <h2>YC Winter 2027 application</h2>
+    {yc_html()}
+  </section>
+
   <section id="view-qa" class="view">
-    <h2>QA · exit gate for Sprint 0</h2>
-    <p class="notice">Shared checklist. Nothing closes the sprint until every line is ticked, and a tick means the evidence exists (a report, a log, a quote, a recording).</p>
+    <h2>QA · exit gates</h2>
+    <p class="notice">Shared checklists. Nothing closes a sprint until every line is ticked, and a tick means the evidence exists (a report, a log, a quote, a recording).</p>
     {qa_html()}
   </section>
 
@@ -508,8 +552,33 @@ OUT_HTML.write_text(PAGE, encoding="utf-8")
 seed = {"cards": {c["id"]: dict(c, notes="", blocked="", movedAt="") for c in M.CARDS},
         "qa": {q["id"]: dict(text=q["text"], owner=q["owner"], checked=False) for q in M.QA_GATE}}
 OUT_SEED.write_text(json.dumps(seed, ensure_ascii=False, indent=1), encoding="utf-8")
+seed1 = {"cards": {c["id"]: dict(c, notes="", blocked="", movedAt="") for c in S1.CARDS},
+         "qa": {q["id"]: dict(text=q["text"], owner=q["owner"], checked=False) for q in S1.QA_GATE},
+         "yc": {y["id"]: dict(ask=y["ask"], evidence=y["evidence"], source=y["source"], owner=y["owner"], checked=False) for y in S1.YC_CHECKLIST}}
+OUT_SEED1.write_text(json.dumps(seed1, ensure_ascii=False, indent=1), encoding="utf-8")
 
-# ---- sprint markdown (repo docs/sprints/S0.md and project)
+# ---- sprint markdown (repo docs/sprints/S0.md, S1.md, ROAD_TO_YC.md)
+def sprint_md(SP, CARDS, QA):
+    md = [f"# {SP['name']} ({SP['start']} → {SP['end']})", "", f"**Goal.** {SP['goal']}", "", f"**Gate.** {SP['gate']}", "",
+          "Live board: the \"Road to YC Board\" artifact (moves, notes and the gates are shared). Generated from docs/sprints/*_model.py.", "", "## Cards", ""]
+    for lane_key, (lane_name, owner_desc, _) in M.LANES.items():
+        cs = [x for x in CARDS if x["lane"] == lane_key]
+        if not cs: continue
+        md += [f"### Lane {lane_key} · {lane_name} — {owner_desc}", ""]
+        for c in cs:
+            md += [f"#### {c['id']} · {c['title']}", "",
+                   f"**Owner** {c['owner']} · **Estimate** {c['est']} h · **Day** {c['day']} · **Priority** {c['prio']} · **Depends on** {', '.join(c['deps']) or 'none'}", "",
+                   f"**Spec.** {c['spec']}", "", "**Acceptance tests.**"] + [f"{i + 1}. {t}" for i, t in enumerate(c["tests"])] + ["",
+                   "**QA.** " + " · ".join(c["qa"]), "", "**Definition of done.** " + " · ".join(c["dod"]), "",
+                   "**Research.** " + " · ".join(c["refs"]), "", "**Telemetry.** " + " · ".join(c["telemetry"]), ""]
+    md += ["## Exit gate (QA checklist)", ""] + [f"- [ ] {q['id']} {q['text']} — {q['owner']}" for q in QA] + [""]
+    return md
+OUT_MD1.write_text("\n".join(sprint_md(S1.SPRINT, S1.CARDS, S1.QA_GATE)), encoding="utf-8")
+road = ["# Road to YC — Winter 2027 application", "", f"**{S1.DEADLINE['label']}: {S1.DEADLINE['when']}.** Submit {S1.DEADLINE['submit']}. Freeze: {S1.DEADLINE['freeze']}. Source: {S1.DEADLINE['source']}", "",
+        "## Day by day", "", "| Day | Sprint | Critical path |", "|---|---|---|"] + [f"| {d} | {sp} | {t} |" for d, sp, t in S1.DAILY] + ["",
+        "## Evidence checklist", "", "| ID | The form asks | Evidence we bring | Source | Owner |", "|---|---|---|---|---|"] + [f"| {y['id']} | {y['ask']} | {y['evidence']} | {y['source']} | {y['owner']} |" for y in S1.YC_CHECKLIST] + ["",
+        "## Cut until after 2 November", ""] + [f"- {c}" for c in S1.CUTS] + ["", "Sprint documents: `docs/sprints/S0.md`, `docs/sprints/S1.md`.", ""]
+OUT_ROAD.write_text("\n".join(road), encoding="utf-8")
 md = [f"# {M.SPRINT['name']} ({M.SPRINT['start']} → {M.SPRINT['end']})", "",
       f"**Goal.** {M.SPRINT['goal']}", "", f"**Gate.** {M.SPRINT['gate']}", "",
       "Live board: the \"Sprint 0 Board\" artifact (moves, notes and the QA gate are shared). This file is generated from `docs/sprints/s0_model.py`.", "",
@@ -533,4 +602,4 @@ md += ["### Questions for counsel", ""] + [f"{i + 1}. {x}" for i, x in enumerate
        "## The planning protocol (S1–S8)", ""] + [f"- **{k}.** {v}" for k, v in M.PROTOCOL] + ["",
        "## S1 research brief (drafted now)", ""] + [f"- {x}" for x in M.S1_BRIEF] + [""]
 OUT_MD.write_text("\n".join(md), encoding="utf-8")
-print("html", len(PAGE) // 1024, "KB;", len(M.CARDS), "cards;", len(M.QA_GATE), "qa items")
+print("html", len(PAGE) // 1024, "KB;", len(ALL_CARDS), "cards;", len(ALL_QA), "qa items;", len(S1.YC_CHECKLIST), "yc items")
