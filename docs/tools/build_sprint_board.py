@@ -97,7 +97,7 @@ def tests_html():
 
 def qa_html():
     out = []
-    for sid, name, items in (("S0", "Sprint 0 exit gate · Sun 25 Oct", M.QA_GATE), ("S1", "Sprint 1 exit gate · Sun 1 Nov", S1.QA_GATE)):
+    for _sid, name, items in (("S0", "Sprint 0 exit gate · Sun 25 Oct", M.QA_GATE), ("S1", "Sprint 1 exit gate · Sun 1 Nov", S1.QA_GATE)):
         out.append(f'<h3>{esc(name)}</h3><ul class="qa">' + "".join(
             f'<li data-qid="{q["id"]}"><label><input type="checkbox" id="qa-{q["id"]}" data-qid="{q["id"]}"> <span class="qid">{q["id"]}</span> {esc(q["text"])} <span class="dim">— {esc(q["owner"])}</span></label></li>' for q in items) + '</ul>')
     return "".join(out)
